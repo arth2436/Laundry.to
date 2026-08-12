@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.wwebjs_cache/
+whatsapp_sessions/
+.env
+.env*.local
+*.log
+dist/
+build/
+.DS_Store

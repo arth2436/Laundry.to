@@ -1,0 +1,16 @@
+{
+  "name": "whatsapp-gateway",
+  "version": "1.0.0",
+  "description": "Free lifetime local WhatsApp API Gateway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}
