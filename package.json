@@ -1,0 +1,10 @@
+{
+  "name": "laundryto-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix laundry-app",
+    "dev": "npm run dev --prefix laundry-app",
+    "start": "npm run start --prefix laundry-app"
+  }
+}

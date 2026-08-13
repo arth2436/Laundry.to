@@ -1,6 +1,5 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "cd laundry-app && npm run build",
+  "buildCommand": "npm run build --prefix laundry-app",
   "outputDirectory": "laundry-app/.next",
-  "installCommand": "cd laundry-app && npm install"
+  "installCommand": "npm install --prefix laundry-app"
 }
