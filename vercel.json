@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd laundry-app && npm run build",
+  "outputDirectory": "laundry-app/.next",
+  "installCommand": "cd laundry-app && npm install"
+}
