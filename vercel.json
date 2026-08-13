@@ -1,5 +1,0 @@
-{
-  "buildCommand": "npm run build --prefix laundry-app",
-  "outputDirectory": "laundry-app/.next",
-  "installCommand": "npm install --prefix laundry-app"
-}

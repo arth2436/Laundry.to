@@ -1,10 +1,27 @@
+# dependencies
 node_modules/
+.pnp
+.pnp.*
+
+# next.js
 .next/
-.wwebjs_cache/
+out/
+
+# whatsapp gateway
 whatsapp_sessions/
-.env
-.env*.local
-*.log
-dist/
+.wwebjs_cache/
+
+# production
 build/
+
+# misc
 .DS_Store
+*.pem
+*.log
+
+# vercel
+.vercel/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
