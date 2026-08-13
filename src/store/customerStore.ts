@@ -29,25 +29,34 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
     };
     customerDB.save(customer);
     set({ customers: customerDB.getAll() });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
     return customer;
   },
   updateCustomer: (customer) => {
     customerDB.save(customer);
     set({ customers: customerDB.getAll() });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
   },
   deleteCustomer: (id) => {
     customerDB.delete(id);
     set({ customers: customerDB.getAll() });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
   },
   getCustomer: (id) => get().customers.find(c => c.id === id),
   searchCustomers: (query) => {
     const q = query.toLowerCase();
     return get().customers.filter(
       c =>
-        c.name.toLowerCase().includes(q) ||
-        c.mobile.includes(q) ||
-        c.customerId.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.mobile && c.mobile.includes(q)) ||
+        (c.customerId && c.customerId.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
     );
   },
 }));

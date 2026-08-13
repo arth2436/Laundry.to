@@ -35,18 +35,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
         const cloudData = json.data || {};
         
         let changed = false;
-        SYNC_KEYS.forEach(key => {
-          const localVal = localStorage.getItem(key);
-          const cloudVal = cloudData[key];
-          if (cloudVal && cloudVal !== localVal) {
-            // Avoid overwriting local storage with empty data if we have actual local data seeded
-            if ((key === 'lms_customers' || key === 'lms_orders') && (!localVal || localVal === '[]') && (!cloudVal || cloudVal === '[]')) {
-              return;
-            }
-            localStorage.setItem(key, cloudVal);
-            changed = true;
-          }
-        });
+
 
         if (changed) {
           window.dispatchEvent(new Event('storage'));
