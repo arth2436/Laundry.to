@@ -23,19 +23,19 @@ export default function TopBar({ title, subtitle, actions }: Props) {
       </div>
       <div className="topbar-actions">
         {actions}
-        <div className="tooltip-wrap">
-          <button 
-            className="btn btn-glass btn-icon" 
-            style={{ position: 'relative' }}
-            onClick={() => router.push('/orders?status=Pending')}
-          >
+        <button
+          className="pending-orders-button"
+          onClick={() => router.push('/orders?status=Pending')}
+          aria-label={`View ${pendingCount} pending orders`}
+        >
+          <span className="pending-orders-icon">
             <Bell size={18} />
             {pendingCount > 0 && (
-              <span style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, background: 'var(--danger)', borderRadius: '50%', border: '2px solid var(--bg-primary)' }} />
+              <span className="pending-orders-dot" />
             )}
-          </button>
-          <span className="tooltip">{pendingCount} Pending Orders</span>
-        </div>
+          </span>
+          <span>{pendingCount} Pending {pendingCount === 1 ? 'Order' : 'Orders'}</span>
+        </button>
       </div>
     </header>
   );

@@ -323,6 +323,54 @@ body {
   gap: 8px;
 }
 
+.pending-orders-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pending-orders-button:hover {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border-color: var(--border-light);
+}
+
+.pending-orders-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.pending-orders-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border: 2px solid var(--bg-primary);
+  border-radius: 50%;
+}
+
 /* ═══════════════════════════════
    BUTTONS
    ═══════════════════════════════ */

@@ -9,14 +9,14 @@ import TopBar from '@/components/layout/TopBar';
 import { ShoppingBag, Search, Eye, Tag, Trash2, Bell, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { Order, OrderStatus, PaymentStatus } from '@/types';
+import { Order, OrderStatus, PaymentMethod } from '@/types';
 import { Suspense } from 'react';
 
 function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, hasAccess } = useAuthStore();
-  const { orders, load, updateStatus, updatePayment, deleteOrder, searchOrders } = useOrderStore();
+  const { orders, load, updateStatus, updatePaymentMethod, deleteOrder, searchOrders } = useOrderStore();
   const [query, setQuery] = useState('');
   
   const initialStatus = searchParams?.get('status') || 'All';
@@ -175,8 +175,6 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const statusBadge = (s: string) => ({ Pending: 'badge-yellow', 'In-Progress': 'badge-blue', Completed: 'badge-green', Delivered: 'badge-purple' }[s] || 'badge-gray');
-  const payBadge = (s: string) => ({ Paid: 'badge-green', Unpaid: 'badge-red', Partial: 'badge-yellow' }[s] || 'badge-gray');
-
   const STATUS_FLOW: OrderStatus[] = ['Pending', 'In-Progress', 'Completed', 'Delivered'];
 
   if (!mounted || !isAuthenticated) return null;
@@ -210,7 +208,7 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
               <div className="table-wrap">
                 <table className="mobile-responsive-table">
                   <thead>
-                    <tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Weight</th><th>Amount</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+                    <tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Weight</th><th>Amount</th><th>Payment Method</th><th>Status</th><th>Date</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
                     {displayed.map((o: Order) => (
@@ -225,13 +223,13 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
                         <td data-label="Items" style={{ fontWeight: 500 }}>{o.items.length} items</td>
                         <td data-label="Weight" style={{ fontWeight: 500 }}>{o.totalWeight.toFixed(2)} kg</td>
                         <td data-label="Amount" style={{ fontWeight: 750, color: 'var(--text-primary)' }}>₹{o.finalAmount.toLocaleString('en-IN')}</td>
-                        <td data-label="Payment">
+                        <td data-label="Payment Method">
                           {hasAccess(['admin']) ? (
                             <select className="input" style={{ padding: '6px 28px 6px 12px', fontSize: 12, width: 'auto', borderRadius: 20, height: 'auto', lineHeight: 1 }}
-                              value={o.paymentStatus} onChange={e => updatePayment(o.id, e.target.value as PaymentStatus)}>
-                              <option>Paid</option><option>Unpaid</option><option>Partial</option>
+                              value={o.paymentMethod === 'Cash' ? 'Cash' : 'Online'} onChange={e => updatePaymentMethod(o.id, e.target.value as PaymentMethod)}>
+                              <option>Cash</option><option>Online</option>
                             </select>
-                          ) : <span className={`badge ${payBadge(o.paymentStatus)}`}>{o.paymentStatus}</span>}
+                          ) : <span className="badge badge-blue">{o.paymentMethod === 'Cash' ? 'Cash' : 'Online'}</span>}
                         </td>
                         <td data-label="Status">
                           <select className="input" style={{ padding: '6px 28px 6px 12px', fontSize: 12, width: 'auto', borderRadius: 20, height: 'auto', lineHeight: 1 }}

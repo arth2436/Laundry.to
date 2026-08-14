@@ -21,7 +21,7 @@ interface BasketItem {
   weight: number | string;
   rate: number;
   amount: number;
-  unit: 'pc' | 'kg';
+  unit: 'pc' | 'kg' | 'both';
   serviceLabel: string;
 }
 
@@ -57,6 +57,7 @@ export default function NewOrderPage() {
   const [notes, setNotes] = useState('');
   const [delivery, setDelivery] = useState('');
   const [saving, setSaving] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [savedOrder, setSavedOrder] = useState<string | null>(null);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
 
@@ -102,7 +103,7 @@ export default function NewOrderPage() {
     const currentService = services.find(s => s.id === selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
     
-    const unit = item.unit || 'pc';
+    const unit: BasketItem['unit'] = item.unit === 'kg' ? 'kg' : 'pc';
     const rate = item.price ?? 0;
 
     setBasket(prev => {
@@ -146,7 +147,7 @@ export default function NewOrderPage() {
     }));
   };
 
-  const setBasketUnit = (id: string, newUnit: string) => {
+  const setBasketUnit = (id: string, newUnit: BasketItem['unit']) => {
     setBasket(prev => prev.map(item => {
       if (item.id !== id) return item;
 
@@ -226,7 +227,6 @@ export default function NewOrderPage() {
       name: newCusName,
       mobile: newCusMobile,
       email: `${newCusName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-      address: '',
     });
     setSelectedCus({
       id: newCus.id,
@@ -245,8 +245,15 @@ export default function NewOrderPage() {
   const finalAmount = Math.max(0, totalAmount - Number(discount));
 
   const handleSave = async () => {
-    if (!selectedCus) return alert('Please select a customer.');
-    if (basket.length === 0) return alert('Add at least one item to basket.');
+    if (!selectedCus) {
+      setSubmissionError('Select a customer before placing the order.');
+      return;
+    }
+    if (basket.length === 0) {
+      setSubmissionError('Add at least one item to the basket before placing the order.');
+      return;
+    }
+    setSubmissionError('');
     setSaving(true);
 
     const orderItems: LaundryItem[] = basket.map(item => ({
@@ -262,7 +269,7 @@ export default function NewOrderPage() {
       customerId: selectedCus.id,
       customerName: selectedCus.name,
       customerMobile: selectedCus.mobile,
-      customerEmail: selectedCus.email,
+      customerEmail: selectedCus.email ?? '',
       items: orderItems,
       totalWeight,
       totalAmount,
@@ -370,7 +377,7 @@ export default function NewOrderPage() {
                       type="checkbox" 
                       checked={isPriority} 
                       onChange={e => setIsPriority(e.target.checked)} 
-                      style={{ srOnly: true, width: 38, height: 20, appearance: 'none', background: isPriority ? 'var(--primary-brand)' : 'var(--border-light)', borderRadius: 10, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
+                      style={{ width: 38, height: 20, appearance: 'none', background: isPriority ? 'var(--primary-brand)' : 'var(--border-light)', borderRadius: 10, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
                     />
                     <div style={{ width: 14, height: 14, background: '#fff', borderRadius: '50%', position: 'absolute', top: 3, left: isPriority ? 21 : 3, transition: '0.2s' }} />
                   </div>
@@ -609,8 +616,9 @@ export default function NewOrderPage() {
                             <div
                               key={c.id}
                               onClick={() => {
-                                setSelectedCus({ id: c.id, name: c.name, mobile: c.mobile, email: c.email });
-                                setCusQuery('');
+                               setSelectedCus({ id: c.id, name: c.name, mobile: c.mobile, email: c.email });
+                               setCusQuery('');
+                               setSubmissionError('');
                               }}
                               style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
                               className="btn-hover-glow"
@@ -821,11 +829,16 @@ export default function NewOrderPage() {
                   </div>
                 )}
 
+                {submissionError && (
+                  <p role="alert" style={{ margin: '0 0 10px', color: 'var(--danger)', fontSize: 12, fontWeight: 650 }}>
+                    {submissionError}
+                  </p>
+                )}
                 <button 
                   className="btn btn-primary" 
                   style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 13.5, fontWeight: 700 }} 
                   onClick={handleSave} 
-                  disabled={saving || !selectedCus || basket.length === 0}
+                  disabled={saving}
                 >
                   {saving ? 'Creating Order...' : '✓ Place Order'}
                 </button>

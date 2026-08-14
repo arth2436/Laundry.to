@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Order, OrderStatus, PaymentStatus } from '@/types';
+import { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
 import { orderDB, customerDB } from '@/lib/db';
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 
@@ -10,6 +10,7 @@ interface OrderState {
   updateOrder: (order: Order) => void;
   updateStatus: (id: string, status: OrderStatus) => void;
   updatePayment: (id: string, paymentStatus: PaymentStatus) => void;
+  updatePaymentMethod: (id: string, paymentMethod: PaymentMethod) => void;
   deleteOrder: (id: string) => void;
   getOrder: (id: string) => Order | undefined;
   getOrdersByCustomer: (customerId: string) => Order[];
@@ -68,6 +69,16 @@ export const useOrderStore = create<OrderState>()((set, get) => ({
     const order = orderDB.getById(id);
     if (order) {
       order.paymentStatus = paymentStatus;
+      order.updatedAt = new Date().toISOString();
+      orderDB.save(order);
+      set({ orders: orderDB.getAll() });
+    }
+  },
+
+  updatePaymentMethod: (id, paymentMethod) => {
+    const order = orderDB.getById(id);
+    if (order) {
+      order.paymentMethod = paymentMethod;
       order.updatedAt = new Date().toISOString();
       orderDB.save(order);
       set({ orders: orderDB.getAll() });
