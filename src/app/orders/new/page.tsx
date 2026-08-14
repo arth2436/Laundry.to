@@ -563,93 +563,185 @@ export default function NewOrderPage() {
 
               {/* Interactive Items Grid */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
-                {filteredCatalog.map(item => {
-                  const currentService = services.find(s => s.id === selectedService);
-                  const unit = item.unit || 'pc';
-                  const rate = item.price ?? 0;
 
-                  // Check if in basket
-                  const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
-                  const isHovered = hoveredCard === item.name;
-                  
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleAddToBasket(item)}
-                      onMouseEnter={() => setHoveredCard(item.name)}
-                      onMouseLeave={() => setHoveredCard(null)}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
-                        borderRadius: 12,
-                        padding: '14px 10px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
-                      }}
-                      className="catalog-item-card"
-                    >
-                      {inBasket && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeBasketItem(inBasket.id);
-                          }}
-                          title="Remove from basket"
+                {productSearch.trim() ? (
+                  <div>
+                    <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim()}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
+                    {filteredCatalog.map(item => {
+                      const currentService = services.find(s => s.id === selectedService);
+                      const unit = item.unit || 'pc';
+                      const rate = item.price ?? 0;
+
+                      // Check if in basket
+                      const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
+                      const isHovered = hoveredCard === item.name;
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleAddToBasket(item)}
+                          onMouseEnter={() => setHoveredCard(item.name)}
+                          onMouseLeave={() => setHoveredCard(null)}
                           style={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            width: 22,
-                            height: 22,
-                            borderRadius: '50%',
-                            background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
-                            color: '#ffffff',
+                            background: 'var(--bg-primary)',
+                            border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
+                            borderRadius: 12,
+                            padding: '14px 10px',
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: isHovered ? 8 : 10,
-                            fontWeight: 800,
-                            border: '2px solid #ffffff',
+                            textAlign: 'center',
+                            position: 'relative',
                             cursor: 'pointer',
-                            boxShadow: 'var(--shadow-sm)',
-                            zIndex: 10,
-                            transition: 'all 0.15s ease'
+                            transition: 'all 0.2s ease',
+                            boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
                           }}
+                          className="catalog-item-card"
                         >
-                          {isHovered ? '✕' : inBasket.quantity}
-                        </button>
-                      )}
-                      
-                      {/* Product Image / Icon */}
-                      {item.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                      ) : (
-                        <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
-                      )}
-                      
-                      {/* Name */}
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                        {item.name}
-                      </span>
-                      
-                      {/* Price & Unit */}
-                      <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
-                        ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
-                      </span>
+                          {inBasket && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeBasketItem(inBasket.id);
+                              }}
+                              title="Remove from basket"
+                              style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                width: 22,
+                                height: 22,
+                                borderRadius: '50%',
+                                background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: isHovered ? 8 : 10,
+                                fontWeight: 800,
+                                border: '2px solid #ffffff',
+                                cursor: 'pointer',
+                                boxShadow: 'var(--shadow-sm)',
+                                zIndex: 10,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {isHovered ? '✕' : inBasket.quantity}
+                            </button>
+                          )}
+                          
+                          {/* Product Image / Icon */}
+                          {item.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                          ) : (
+                            <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
+                          )}
+                          
+                          {/* Name */}
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {item.name}
+                          </span>
+                          
+                          {/* Price & Unit */}
+                          <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
+                            ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                     </div>
-                  );
-                })}
-                </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
+                  {filteredCatalog.map(item => {
+                    const currentService = services.find(s => s.id === selectedService);
+                    const unit = item.unit || 'pc';
+                    const rate = item.price ?? 0;
+
+                    // Check if in basket
+                    const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
+                    const isHovered = hoveredCard === item.name;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleAddToBasket(item)}
+                        onMouseEnter={() => setHoveredCard(item.name)}
+                        onMouseLeave={() => setHoveredCard(null)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
+                          borderRadius: 12,
+                          padding: '14px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          position: 'relative',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
+                        }}
+                        className="catalog-item-card"
+                      >
+                        {inBasket && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeBasketItem(inBasket.id);
+                            }}
+                            title="Remove from basket"
+                            style={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              width: 22,
+                              height: 22,
+                              borderRadius: '50%',
+                              background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: isHovered ? 8 : 10,
+                              fontWeight: 800,
+                              border: '2px solid #ffffff',
+                              cursor: 'pointer',
+                              boxShadow: 'var(--shadow-sm)',
+                              zIndex: 10,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isHovered ? '✕' : inBasket.quantity}
+                          </button>
+                        )}
+                        
+                        {/* Product Image / Icon */}
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                        ) : (
+                          <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
+                        )}
+                        
+                        {/* Name */}
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          {item.name}
+                        </span>
+                        
+                        {/* Price & Unit */}
+                        <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
+                          ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                  </div>
+                )}
               </div>
             </div>
 
