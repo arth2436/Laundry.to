@@ -67,6 +67,12 @@ export default function NewOrderPage() {
   const [modalWeight, setModalWeight] = useState<any>(1);
   const [modalUnit, setModalUnit] = useState<BasketItem['unit']>('pc');
   const [modalNote, setModalNote] = useState('');
+  const [showProductList, setShowProductList] = useState(false);
+  const [productListSelectedId, setProductListSelectedId] = useState<string | null>(null);
+  const [productListQty, setProductListQty] = useState(1);
+  const [productListWeight, setProductListWeight] = useState<any>(1);
+  const [productListUnit, setProductListUnit] = useState<BasketItem['unit']>('pc');
+  const [productListNote, setProductListNote] = useState('');
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -495,7 +501,55 @@ export default function NewOrderPage() {
                 })}
               </div>
 
-                {/* Inline Product Detail Panel (appears when a product is selected) */}
+                {/* Controls: Discount / Image / Item Note / Product List (show for Wash & Fold and others) */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 6 }}>
+                  <button className="btn btn-glass" onClick={() => { const d = prompt('Apply discount amount (₹):', discount?.toString() || '0'); if (d !== null) setDiscount(d === '' ? '' : Number(d)); }}>Discount</button>
+                  <button className="btn btn-glass" onClick={() => { const url = prompt('Enter image URL for product preview (optional):', ''); if (url !== null) { /* store nowhere globally - used per-product */ } }}>Image</button>
+                  <button className="btn btn-glass" onClick={() => { const n = prompt('Add item note (will open when adding items):', productListNote); if (n !== null) setProductListNote(n); }}>Item Note</button>
+                  <button className={`btn ${showProductList ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowProductList(s => !s)}>Product List</button>
+                </div>
+
+                {/* Product List selector (appears when Product List enabled) */}
+                {showProductList && (
+                  <div style={{ margin: '12px 0', display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <label className="input-label">Product Name :</label>
+                      <select className="input" value={productListSelectedId || ''} onChange={e => setProductListSelectedId(e.target.value || null)}>
+                        <option value="">Select product</option>
+                        {filteredCatalog.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <label style={{ fontSize: 12 }}>Quantity</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button className="btn btn-glass" onClick={() => setProductListQty(q => Math.max(1, q - 1))}>-</button>
+                        <div style={{ minWidth: 36, textAlign: 'center', fontWeight: 800 }}>{productListQty}</div>
+                        <button className="btn btn-glass" onClick={() => setProductListQty(q => q + 1)}>+</button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <button className="btn btn-primary" onClick={() => {
+                        if (!productListSelectedId) return alert('Select a product first');
+                        const p = serviceItems.find(si => si.id === productListSelectedId);
+                        if (!p) return alert('Product not found');
+                        // add to basket
+                        const unit: BasketItem['unit'] = productListUnit || (p.unit === 'kg' ? 'kg' : 'pc');
+                        const rate = p.price ?? 0;
+                        setBasket(prev => {
+                          const existingIdx = prev.findIndex(b => b.type === p.name && b.serviceLabel === (services.find(s => s.id === selectedService)?.label || '') && b.unit === unit && b.note === productListNote);
+                          if (existingIdx >= 0) {
+                            return prev.map((b, idx) => idx === existingIdx ? { ...b, quantity: b.quantity + productListQty, amount: calculateAmount(b.quantity + productListQty, productListWeight, b.rate, b.unit) } : b);
+                          }
+                          return [...prev, { id: uid(), type: p.name, quantity: productListQty, weight: productListWeight, rate, amount: calculateAmount(productListQty, productListWeight, rate, unit), unit, serviceLabel: services.find(s => s.id === selectedService)?.label || '', note: productListNote, image: (p as any).image || null }];
+                        });
+                      }}>Add</button>
+                    </div>
+                  </div>
+                )}
                 {activeProduct && (
                   <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
                     {activeProduct.image ? (
