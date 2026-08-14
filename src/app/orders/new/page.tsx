@@ -452,10 +452,7 @@ export default function NewOrderPage() {
                 </label>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                <Search size={16} style={{ color: 'var(--text-muted)' }} />
-                <input className="input" placeholder="Search products..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ width: 340 }} />
-              </div>
+              {/* single search bar retained in the top card; duplicate removed */}
 
                 {/* Product List selector (appears when Product List enabled) */}
                 {showProductList && (
