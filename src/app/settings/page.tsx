@@ -113,7 +113,9 @@ export default function SettingsPage() {
             gatewayOrigin = new URL(settings.whatsappGatewayUrl).origin;
           } catch (e) {}
         }
-        const res = await fetch(`${gatewayOrigin}/status`);
+        const res = await fetch(`${gatewayOrigin}/status`, {
+          headers: { 'Bypass-Tunnel-Reminder': 'true' }
+        });
         if (!active) return;
         
 
@@ -156,7 +158,10 @@ export default function SettingsPage() {
       }
       const res = await fetch(`${gatewayOrigin}/disconnect`, { 
         method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: JSON.stringify({})
       });
       if (res.ok) {

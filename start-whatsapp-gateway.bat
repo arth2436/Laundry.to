@@ -5,7 +5,7 @@ echo       LaundryTO WhatsApp Gateway Launcher
 echo ==========================================================
 echo.
 echo [1/2] Starting WhatsApp API Gateway Server...
-start cmd /k "cd /d e:\Laundry\whatsapp-gateway && npm start"
+start cmd /k "cd /d c:\Users\vijay\Desktop\Laundry\whatsapp-gateway && npm start"
 
 echo.
 echo [2/2] Launching Secure Public Tunnel...
