@@ -73,7 +73,7 @@ export default function CustomersPage() {
                     {displayed.map((c: Customer) => (
                       <tr key={c.id}>
                         <td data-label="Customer">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-start', width: '100%' }}>
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, boxShadow: '0 2px 6px rgba(15,23,42,0.1)' }}>
                               {c.name.charAt(0).toUpperCase()}
                             </div>
