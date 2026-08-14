@@ -81,6 +81,10 @@ export default function NewOrderPage() {
   const [customWeight, setCustomWeight] = useState<any>(1);
   const [customNote, setCustomNote] = useState('');
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [showDiscountInline, setShowDiscountInline] = useState(false);
+  const [showNoteInline, setShowNoteInline] = useState(false);
+  const [showImageInput, setShowImageInput] = useState(false);
+  const [imageInputValue, setImageInputValue] = useState('');
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -494,26 +498,55 @@ export default function NewOrderPage() {
               </div>
 
                 {/* Controls: Discount / Image / Item Note / Product List (show for Wash & Fold and others) */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 6 }}>
-                  <button className="btn btn-glass" onClick={() => { const d = prompt('Apply discount amount (₹):', discount?.toString() || '0'); if (d !== null) setDiscount(d === '' ? '' : Number(d)); }}>Discount</button>
-                  <button className="btn btn-glass" onClick={() => {
-                    // Persist image URL to selected product or active product
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 6, alignItems: 'center' }}>
+                  <button className={`btn ${showDiscountInline ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowDiscountInline(s => !s)}>Discount</button>
+                  <button className={`btn ${showImageInput ? 'btn-primary' : 'btn-glass'}`} onClick={() => {
+                    setShowImageInput(s => !s);
+                    // if showing, prefill with current image if available
                     const targetId = productListSelectedId || activeProduct?.id;
-                    const url = prompt('Enter image URL for product preview (optional):', '');
-                    if (url === null) return;
-                    if (!targetId) {
-                      // if no target, allow setting custom image for next custom item
-                      setCustomImage(url || null);
-                      return;
-                    }
-                    // find and update in-memory and DB
-                    const updated = serviceItems.map(si => si.id === targetId ? { ...si, image: url || null } : si);
-                    setServiceItems(updated);
-                    serviceItemsDB.save(updated);
+                    const target = serviceItems.find(si => si.id === targetId);
+                    setImageInputValue(target?.image || '');
                   }}>Image</button>
-                  <button className="btn btn-glass" onClick={() => { const n = prompt('Add item note (will open when adding items):', productListNote); if (n !== null) setProductListNote(n); }}>Item Note</button>
+                  <button className={`btn ${showNoteInline ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowNoteInline(s => !s)}>Item Note</button>
                   <button className={`btn ${showProductList ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowProductList(s => !s)}>Product List</button>
                 </div>
+
+                {/* Inline Discount / Note / Image inputs */}
+                {showDiscountInline && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <input className="input" placeholder="Discount (₹)" value={discount} onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 120 }} />
+                    <button className="btn btn-glass" onClick={() => setShowDiscountInline(false)}>Done</button>
+                  </div>
+                )}
+
+                {showNoteInline && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <input className="input" placeholder="Order note" value={productListNote} onChange={e => setProductListNote(e.target.value)} style={{ minWidth: 240 }} />
+                    <button className="btn btn-glass" onClick={() => setShowNoteInline(false)}>Done</button>
+                  </div>
+                )}
+
+                {showImageInput && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <input className="input" placeholder="Image URL" value={imageInputValue} onChange={e => setImageInputValue(e.target.value)} style={{ minWidth: 360 }} />
+                    <button className="btn btn-glass" onClick={() => { setShowImageInput(false); setImageInputValue(''); }}>Cancel</button>
+                    <button className="btn btn-primary" onClick={() => {
+                      const url = imageInputValue || '';
+                      const targetId = productListSelectedId || activeProduct?.id;
+                      if (!targetId) {
+                        setCustomImage(url || null);
+                        setShowImageInput(false);
+                        setImageInputValue('');
+                        return;
+                      }
+                      const updated = serviceItems.map(si => si.id === targetId ? { ...si, image: url || null } : si);
+                      setServiceItems(updated);
+                      serviceItemsDB.save(updated);
+                      setShowImageInput(false);
+                      setImageInputValue('');
+                    }}>Save</button>
+                  </div>
+                )}
 
                 {/* Product List selector (appears when Product List enabled) */}
                 {showProductList && (
