@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 let latestQrBase64 = null;
 let connectionStatus = 'Initializing';
 let connectedNumber = null;
