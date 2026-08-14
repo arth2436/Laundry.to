@@ -427,30 +427,33 @@ export default function NewOrderPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               
               {/* POS Top Bar Controls */}
-              <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '16px 20px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input
-                    className="input"
-                    style={{ paddingLeft: 42, background: 'var(--bg-secondary)' }}
-                    placeholder="Search products..."
-                    value={productSearch}
-                    onChange={e => setProductSearch(e.target.value)}
-                  />
-                </div>
-                  {/* Category selector row */}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12 }}>
+              <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '18px 22px', flexWrap: 'wrap' }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                  {/* Categories above search */}
+                  <div className="category-pills" style={{ width: '100%', justifyContent: 'center' }}>
                     {CATEGORY_DEFS.map(c => (
                       <button
                         key={c.id}
-                        className={selectedMainCategory === c.id ? 'btn btn-primary' : 'btn btn-glass'}
+                        className={`category-pill ${selectedMainCategory === c.id ? 'active' : ''}`}
                         onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
-                        style={{ textTransform: 'uppercase', fontSize: 12, padding: '8px 10px' }}
+                        style={{ textTransform: 'uppercase' }}
                       >
                         {c.label}
                       </button>
                     ))}
                   </div>
+
+                  {/* Centered, larger search input */}
+                  <div style={{ position: 'relative', width: '68%', minWidth: 360, maxWidth: 920 }}>
+                    <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      className="search-input search-input--large"
+                      placeholder="Search products..."
+                      value={productSearch}
+                      onChange={e => setProductSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
 
                 {/* Due Date Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
