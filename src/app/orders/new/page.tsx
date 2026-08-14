@@ -341,6 +341,20 @@ export default function NewOrderPage() {
     return matchesSearch && isEnabled;
   });
 
+  // Deduplicated catalog (used when searching) - keep one representative per product name
+  const dedupedCatalog = (() => {
+    const seen = new Set<string>();
+    const out: ServiceItem[] = [];
+    for (const it of filteredCatalog) {
+      const key = it.name.trim().toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(it);
+      }
+    }
+    return out;
+  })();
+
   if (!mounted || !isAuthenticated) return null;
 
   if (savedOrder) {
@@ -568,7 +582,7 @@ export default function NewOrderPage() {
                   <div>
                     <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim()}</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
-                    {filteredCatalog.map(item => {
+                    {dedupedCatalog.map(item => {
                       const currentService = services.find(s => s.id === selectedService);
                       const unit = item.unit || 'pc';
                       const rate = item.price ?? 0;
