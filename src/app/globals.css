@@ -1243,8 +1243,8 @@ tr:last-child td {
 /* ── POS Layout Responsive ── */
 .pos-layout {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
   align-items: start;
 }
 

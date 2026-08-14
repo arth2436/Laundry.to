@@ -72,11 +72,15 @@ export default function NewOrderPage() {
   const [submissionError, setSubmissionError] = useState('');
   const [savedOrder, setSavedOrder] = useState<string | null>(null);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
-  const [activeProduct, setActiveProduct] = useState<ServiceItem | null>(null);
-  const [modalQuantity, setModalQuantity] = useState(1);
-  const [modalWeight, setModalWeight] = useState<any>(1);
-  const [modalUnit, setModalUnit] = useState<BasketItem['unit']>('pc');
-  const [modalNote, setModalNote] = useState('');
+  type DraftItem = {
+    internalId: string;
+    product: ServiceItem;
+    quantity: number;
+    weight: any;
+    unit: BasketItem['unit'];
+    note: string;
+  };
+  const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
   const [showProductList, setShowProductList] = useState(false);
   const [productListSelectedId, setProductListSelectedId] = useState<string | null>(null);
   const [productListQty, setProductListQty] = useState(1);
@@ -187,17 +191,14 @@ export default function NewOrderPage() {
   };
 
   const handleAddToBasket = (item: ServiceItem) => {
-    // open inline product detail panel to allow quantity/notes before adding
-    const currentService = services.find(s => s.id === item.serviceId);
-    const serviceLabel = currentService?.label || 'Wash & Fold';
-    setActiveProduct(item);
-    // initialize modal fields
-    setModalQuantity(1);
-    setModalWeight(1);
-    setModalUnit(item.unit === 'kg' ? 'kg' : 'pc');
-    setModalNote('');
-    // open basket on small screens
-    // setIsBasketOpen(true);
+    setDraftItems(prev => [...prev, {
+      internalId: uid(),
+      product: item,
+      quantity: 1,
+      weight: 1,
+      unit: item.unit === 'kg' ? 'kg' : 'pc',
+      note: ''
+    }]);
   };
 
   // Remove or update items from basket
@@ -270,47 +271,51 @@ export default function NewOrderPage() {
     setShowCustomPanel(true);
   };
 
-  const confirmAddModal = () => {
-    if (!activeProduct) return;
-    const currentService = services.find(s => s.id === (activeProduct as any).serviceId || selectedService);
+  const confirmAddDraft = (internalId: string) => {
+    const draft = draftItems.find(d => d.internalId === internalId);
+    if (!draft) return;
+    const currentService = services.find(s => s.id === (draft.product as any).serviceId || selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
-    const rate = activeProduct.price ?? 0;
-    const unit: BasketItem['unit'] = modalUnit;
+    const rate = draft.product.price ?? 0;
+    const unit = draft.unit;
 
     setBasket(prev => {
-      const existingIdx = prev.findIndex(b => b.type === activeProduct.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === modalNote);
+      const existingIdx = prev.findIndex(b => b.type === draft.product.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === draft.note);
       if (existingIdx >= 0) {
         return prev.map((b, idx) => {
           if (idx !== existingIdx) return b;
-          const newQty = b.quantity + modalQuantity;
+          const newQty = b.quantity + draft.quantity;
           return {
             ...b,
             quantity: newQty,
-            weight: modalWeight,
+            weight: draft.weight,
             rate,
-            note: modalNote,
-            image: (activeProduct as any).image || null,
-            amount: calculateAmount(newQty, modalWeight, rate, unit)
+            note: draft.note,
+            image: (draft.product as any).image || null,
+            amount: calculateAmount(newQty, draft.weight, rate, unit)
           };
         });
       } else {
         return [...prev, {
           id: uid(),
-          type: activeProduct.name,
-          quantity: modalQuantity,
-          weight: modalWeight,
+          type: draft.product.name,
+          quantity: draft.quantity,
+          weight: draft.weight,
           rate,
-          amount: calculateAmount(modalQuantity, modalWeight, rate, unit),
+          amount: calculateAmount(draft.quantity, draft.weight, rate, unit),
           unit,
           serviceLabel,
-          note: modalNote,
-          image: (activeProduct as any).image || null
+          note: draft.note,
+          image: (draft.product as any).image || null
         }];
       }
     });
 
-    // close active product panel
-    setActiveProduct(null);
+    setDraftItems(prev => prev.filter(d => d.internalId !== internalId));
+  };
+
+  const updateDraft = (internalId: string, updates: Partial<DraftItem>) => {
+    setDraftItems(prev => prev.map(d => d.internalId === internalId ? { ...d, ...updates } : d));
   };
 
   const openEditModalForItem = (itemId: string) => {
@@ -318,12 +323,15 @@ export default function NewOrderPage() {
     if (!found) return;
     // find matching service item to get price/image
     const matched = serviceItems.find(si => si.name.toLowerCase() === found.type.toLowerCase());
-    setActiveProduct(matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem));
-    setModalQuantity(found.quantity);
-    setModalWeight(found.weight);
-    setModalUnit(found.unit);
-    setModalNote(found.note || '');
-    // remove the existing item so confirmAddModal will re-add (or update)
+    setDraftItems(prev => [...prev, {
+      internalId: uid(),
+      product: matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem),
+      quantity: found.quantity,
+      weight: found.weight,
+      unit: found.unit,
+      note: found.note || ''
+    }]);
+    // remove the existing item so confirmAddDraft will re-add (or update)
     setBasket(prev => prev.filter(b => b.id !== itemId));
   };
 
@@ -488,17 +496,40 @@ export default function NewOrderPage() {
                   />
                 </div>
                   {/* Category selector row */}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12 }}>
-                    {CATEGORY_DEFS.map(c => (
-                      <button
-                        key={c.id}
-                        className={selectedMainCategory === c.id ? 'btn btn-primary' : 'btn btn-glass'}
-                        onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
-                        style={{ textTransform: 'uppercase', fontSize: 12, padding: '8px 10px' }}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                    {CATEGORY_DEFS.map((c, idx) => {
+                      const gradients = [
+                        'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                        'linear-gradient(135deg, #ec4899, #be185d)',
+                        'linear-gradient(135deg, #10b981, #059669)',
+                        'linear-gradient(135deg, #f59e0b, #d97706)'
+                      ];
+                      const activeBg = gradients[idx % gradients.length];
+                      
+                      return (
+                        <button
+                          key={c.id}
+                          onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
+                          style={{ 
+                            textTransform: 'uppercase', 
+                            fontSize: 14, 
+                            fontWeight: 850,
+                            padding: '14px 24px', 
+                            borderRadius: 12,
+                            background: selectedMainCategory === c.id ? activeBg : 'var(--bg-primary)',
+                            color: selectedMainCategory === c.id ? '#ffffff' : 'var(--text-secondary)',
+                            border: selectedMainCategory === c.id ? 'none' : '2px solid var(--border-light)',
+                            boxShadow: selectedMainCategory === c.id ? '0 8px 16px rgba(0,0,0,0.15)' : 'var(--shadow-sm)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                 {/* Due Date Info */}
@@ -640,28 +671,28 @@ export default function NewOrderPage() {
                     </div>
                   </div>
                 )}
-                {activeProduct && (
-                  <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
-                    {activeProduct.image ? (
+                {draftItems.map(draft => (
+                  <div key={draft.internalId} className="card fade-in" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {draft.product.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={activeProduct.image} alt={activeProduct.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                      <img src={draft.product.image} alt={draft.product.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                     ) : (
-                      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>{(activeProduct.icon as any) || '👕'}</div>
+                      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>{(draft.product.icon as any) || '👕'}</div>
                     )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{activeProduct.name}</div>
-                      {activeProduct.description && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeProduct.description}</div>}
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>{draft.product.name}</div>
+                      {draft.product.description && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{draft.product.description}</div>}
 
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button className="btn btn-glass" onClick={() => setModalQuantity(q => Math.max(1, q - 1))}>-</button>
-                          <div style={{ minWidth: 48, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{modalQuantity}</div>
-                          <button className="btn btn-glass" onClick={() => setModalQuantity(q => q + 1)}>+</button>
+                          <button className="btn btn-glass" onClick={() => updateDraft(draft.internalId, { quantity: Math.max(1, draft.quantity - 1) })}>-</button>
+                          <div style={{ minWidth: 48, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{draft.quantity}</div>
+                          <button className="btn btn-glass" onClick={() => updateDraft(draft.internalId, { quantity: draft.quantity + 1 })}>+</button>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <input type="number" step="0.05" min="0" value={modalWeight} onChange={e => setModalWeight(e.target.value)} style={{ width: 80, padding: '8px 10px' }} />
-                          <select value={modalUnit} onChange={e => setModalUnit(e.target.value as any)} style={{ padding: '8px 10px' }}>
+                          <input type="number" step="0.05" min="0" value={draft.weight} onChange={e => updateDraft(draft.internalId, { weight: e.target.value })} style={{ width: 80, padding: '8px 10px' }} />
+                          <select value={draft.unit} onChange={e => updateDraft(draft.internalId, { unit: e.target.value as any })} style={{ padding: '8px 10px' }}>
                             <option value="pc">PC</option>
                             <option value="kg">KG</option>
                             <option value="both">BOTH</option>
@@ -670,21 +701,21 @@ export default function NewOrderPage() {
 
                         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Price</div>
-                          <div style={{ fontWeight: 900, color: 'var(--primary-brand)', fontSize: 18 }}>₹{(activeProduct.price ?? 0).toFixed(0)}</div>
+                          <div style={{ fontWeight: 900, color: 'var(--primary-brand)', fontSize: 18 }}>₹{(draft.product.price ?? 0).toFixed(0)}</div>
                         </div>
                       </div>
 
                       <div style={{ marginTop: 8 }}>
-                        <input className="input" placeholder="Item note (optional)" value={modalNote} onChange={e => setModalNote(e.target.value)} />
+                        <input className="input" placeholder="Item note (optional)" value={draft.note} onChange={e => updateDraft(draft.internalId, { note: e.target.value })} />
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <button className="btn btn-primary" onClick={confirmAddModal}>Add to Order</button>
-                      <button className="btn btn-glass" onClick={() => setActiveProduct(null)}>Close</button>
+                      <button className="btn btn-primary" onClick={() => confirmAddDraft(draft.internalId)}>Add to Order</button>
+                      <button className="btn btn-glass" onClick={() => setDraftItems(prev => prev.filter(d => d.internalId !== draft.internalId))}>Close</button>
                     </div>
                   </div>
-                )}
+                ))}
 
               {/* Interactive Items Grid */}
               {(productSearch.trim() || selectedMainCategory) ? (
