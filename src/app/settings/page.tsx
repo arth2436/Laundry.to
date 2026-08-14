@@ -194,16 +194,50 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    settingsDB.save(settings);
-    servicesDB.save(services);
-    serviceItemsDB.save(items);
-    loadSettings();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      console.log('💾 Saving data...');
+      console.log('Items to save:', items.map(i => ({ name: i.name, price: i.price })));
+      
+      // Save to localStorage with verification
+      settingsDB.save(settings);
+      servicesDB.save(services);
+      serviceItemsDB.save(items);
+      
+      // Verify save was successful by reading back
+      const verification = serviceItemsDB.getAll();
+      console.log('✓ Verification - Items in DB:', verification.map(i => ({ name: i.name, price: i.price })));
+      
+      const shirtItem = verification.find(i => i.name === 'Shirt');
+      if (shirtItem) {
+        console.log('✓ Shirt price confirmed saved:', shirtItem.price);
+      }
+      
+      // Also check raw localStorage
+      const rawData = localStorage.getItem('lms_service_items');
+      if (rawData) {
+        const parsed = JSON.parse(rawData);
+        const rawShirt = parsed.find((i: any) => i.name === 'Shirt');
+        console.log('✓ Raw localStorage Shirt price:', rawShirt?.price);
+      }
+      
+      loadSettings();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      alert('✓ Settings saved successfully!');
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Error saving changes. Please try again.');
+    }
   };
 
   const updateItem = (itemId: string, field: keyof ServiceItem, val: any) => {
-    setItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: val } : item));
+    console.log(`📝 Updating ${field} for item ${itemId} to:`, val);
+    setItems(prev => {
+      const updated = prev.map(item => item.id === itemId ? { ...item, [field]: val } : item);
+      const updatedItem = updated.find(i => i.id === itemId);
+      console.log(`✓ Item after update:`, updatedItem);
+      return updated;
+    });
   };
 
   const addItem = () => {
@@ -246,9 +280,36 @@ export default function SettingsPage() {
       <div className="main-content">
         <TopBar title="Settings" subtitle="LMS Company Profile & Service Items Configurations"
           actions={
-            <button className="btn btn-primary btn-sm" onClick={handleSave}>
-              <Save size={15} />{saved ? '✓ Saved!' : 'Save Changes'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                <Save size={15} />{saved ? '✓ Saved!' : 'Save Changes'}
+              </button>
+              <button className="btn btn-glass btn-sm" onClick={() => {
+                // Debug: Show what's in state and localStorage
+                const stateShirt = items.find(i => i.name === 'Shirt');
+                const localStorageData = localStorage.getItem('lms_service_items');
+                const storageShirt = localStorageData ? JSON.parse(localStorageData).find((i: any) => i.name === 'Shirt') : null;
+                
+                console.clear();
+                console.log('%c=== DEBUG INFO ===', 'color: blue; font-size: 16px; font-weight: bold');
+                console.log('%cState Shirt:', 'color: green; font-weight: bold', stateShirt);
+                console.log('%cLocalStorage Shirt:', 'color: orange; font-weight: bold', storageShirt);
+                console.log('%cAll items in state:', 'color: green', items.map(i => ({ name: i.name, price: i.price })));
+                console.log('%cAll items in localStorage:', 'color: orange', localStorageData ? JSON.parse(localStorageData).map((i: any) => ({ name: i.name, price: i.price })) : 'EMPTY');
+                
+                alert('Debug info printed to console (F12). Check the browser console.');
+              }}>
+                🐛 Debug
+              </button>
+              <button className="btn btn-glass btn-sm" onClick={() => {
+                if (confirm('This will clear all app data and reload. Continue?')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}>
+                🔄 Clear & Reload
+              </button>
+            </div>
           } />
         
         <div className="page-body fade-in">

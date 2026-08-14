@@ -107,6 +107,8 @@ export interface ServiceItem {
   processingTime: string; // e.g. '24 hours'
   enabled: boolean;
   icon?: string;
+  image?: string;    // Optional product image URL
+  description?: string; // Optional product description
 }
 
 export interface DashboardStats {
