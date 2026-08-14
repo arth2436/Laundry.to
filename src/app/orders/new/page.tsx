@@ -23,6 +23,8 @@ interface BasketItem {
   amount: number;
   unit: 'pc' | 'kg' | 'both';
   serviceLabel: string;
+  note?: string;
+  image?: string | null;
 }
 
 export default function NewOrderPage() {
@@ -60,6 +62,11 @@ export default function NewOrderPage() {
   const [submissionError, setSubmissionError] = useState('');
   const [savedOrder, setSavedOrder] = useState<string | null>(null);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
+  const [modalProduct, setModalProduct] = useState<ServiceItem | null>(null);
+  const [modalQuantity, setModalQuantity] = useState(1);
+  const [modalWeight, setModalWeight] = useState<any>(1);
+  const [modalUnit, setModalUnit] = useState<BasketItem['unit']>('pc');
+  const [modalNote, setModalNote] = useState('');
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -100,38 +107,15 @@ export default function NewOrderPage() {
   };
 
   const handleAddToBasket = (item: ServiceItem) => {
+    // open modal to allow quantity/notes before adding
     const currentService = services.find(s => s.id === selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
-    
-    const unit: BasketItem['unit'] = item.unit === 'kg' ? 'kg' : 'pc';
-    const rate = item.price ?? 0;
-
-    setBasket(prev => {
-      // Check if item of same name, service and unit type is already in basket
-      const existingIdx = prev.findIndex(b => b.type === item.name && b.serviceLabel === serviceLabel && b.unit === unit);
-      if (existingIdx >= 0) {
-        return prev.map((b, idx) => {
-          if (idx !== existingIdx) return b;
-          const newQty = b.quantity + 1;
-          return {
-            ...b,
-            quantity: newQty,
-            amount: calculateAmount(newQty, b.weight, b.rate, b.unit)
-          };
-        });
-      } else {
-        return [...prev, {
-          id: uid(),
-          type: item.name,
-          quantity: 1,
-          weight: 1,
-          rate,
-          amount: calculateAmount(1, 1, rate, unit),
-          unit,
-          serviceLabel
-        }];
-      }
-    });
+    setModalProduct(item);
+    // initialize modal fields
+    setModalQuantity(1);
+    setModalWeight(1);
+    setModalUnit(item.unit === 'kg' ? 'kg' : 'pc');
+    setModalNote('');
   };
 
   // Remove or update items from basket
@@ -218,6 +202,63 @@ export default function NewOrderPage() {
       unit,
       serviceLabel
     }]);
+  };
+
+  const confirmAddModal = () => {
+    if (!modalProduct) return;
+    const currentService = services.find(s => s.id === selectedService);
+    const serviceLabel = currentService?.label || 'Wash & Fold';
+    const rate = modalProduct.price ?? 0;
+    const unit: BasketItem['unit'] = modalUnit;
+
+    setBasket(prev => {
+      const existingIdx = prev.findIndex(b => b.type === modalProduct.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === modalNote);
+      if (existingIdx >= 0) {
+        return prev.map((b, idx) => {
+          if (idx !== existingIdx) return b;
+          const newQty = b.quantity + modalQuantity;
+          return {
+            ...b,
+            quantity: newQty,
+            weight: modalWeight,
+            rate,
+            note: modalNote,
+            image: (modalProduct as any).image || null,
+            amount: calculateAmount(newQty, modalWeight, rate, unit)
+          };
+        });
+      } else {
+        return [...prev, {
+          id: uid(),
+          type: modalProduct.name,
+          quantity: modalQuantity,
+          weight: modalWeight,
+          rate,
+          amount: calculateAmount(modalQuantity, modalWeight, rate, unit),
+          unit,
+          serviceLabel,
+          note: modalNote,
+          image: (modalProduct as any).image || null
+        }];
+      }
+    });
+
+    // close modal
+    setModalProduct(null);
+  };
+
+  const openEditModalForItem = (itemId: string) => {
+    const found = basket.find(b => b.id === itemId);
+    if (!found) return;
+    // find matching service item to get price/image
+    const matched = serviceItems.find(si => si.name.toLowerCase() === found.type.toLowerCase());
+    setModalProduct(matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem));
+    setModalQuantity(found.quantity);
+    setModalWeight(found.weight);
+    setModalUnit(found.unit);
+    setModalNote(found.note || '');
+    // remove the existing item so confirmAddModal will re-add (or update)
+    setBasket(prev => prev.filter(b => b.id !== itemId));
   };
 
   // Customer Quick Add
@@ -518,8 +559,13 @@ export default function NewOrderPage() {
                         </button>
                       )}
                       
-                      {/* Emoji Icon */}
-                      <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
+                      {/* Product Image / Icon */}
+                      {item.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                      ) : (
+                        <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
+                      )}
                       
                       {/* Name */}
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
@@ -673,7 +719,8 @@ export default function NewOrderPage() {
                             <button style={{ border: 'none', background: 'none', width: 14, height: 18, fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => updateBasketQty(item.id, -1)}>-</button>
                             <span style={{ fontSize: 11.5, fontWeight: 800, minWidth: 14, textAlign: 'center', color: 'var(--text-primary)' }}>{item.quantity}</span>
                             <button style={{ border: 'none', background: 'none', width: 14, height: 18, fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => updateBasketQty(item.id, 1)}>+</button>
-                            <span style={{ fontSize: 9.5, color: 'var(--text-muted)', marginLeft: 2 }}>pc</span>
+                            <span style={{ fontSize: 9.5, color: 'var(--text-muted)', marginLeft: 2 }}>{item.unit === 'pc' ? 'pc' : 'kg'}</span>
+                            <button style={{ border: 'none', background: 'none', marginLeft: 8, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => openEditModalForItem(item.id)}>Edit</button>
                           </div>
 
                           {/* Weight input */}
@@ -752,6 +799,11 @@ export default function NewOrderPage() {
                             <div style={{ fontSize: 11.5, fontWeight: 850, color: 'var(--text-primary)', marginTop: 2 }}>₹{item.amount.toFixed(0)}</div>
                           </div>
                         </div>
+
+                        {/* optional note */}
+                        {item.note && (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: -4 }}>{item.note}</div>
+                        )}
                       </div>
                     ))
                   )}
@@ -892,6 +944,56 @@ export default function NewOrderPage() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-glass" onClick={() => setShowAddCusModal(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleQuickAddCustomer} disabled={!newCusName || !newCusMobile}>Add & Select</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ITEM ADD / EDIT MODAL */}
+      {modalProduct && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setModalProduct(null)}>
+          <div className="card" style={{ width: '100%', maxWidth: 520, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {modalProduct.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={modalProduct.image} alt={modalProduct.name} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8 }} />
+                ) : (
+                  <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{(modalProduct.icon as any) || '👕'}</div>
+                )}
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{modalProduct.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{modalProduct.description || ''}</div>
+                </div>
+              </div>
+              <button className="btn btn-glass btn-sm" onClick={() => setModalProduct(null)}>Cancel</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 18, alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button className="btn btn-glass" onClick={() => setModalQuantity(q => Math.max(1, q - 1))}>-</button>
+                <div style={{ minWidth: 54, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{modalQuantity}</div>
+                <button className="btn btn-glass" onClick={() => setModalQuantity(q => q + 1)}>+</button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="number" step="0.05" min="0" value={modalWeight} onChange={e => setModalWeight(e.target.value)} style={{ width: 80, padding: '8px 10px' }} />
+                <select value={modalUnit} onChange={e => setModalUnit(e.target.value as any)} style={{ padding: '8px 10px' }}>
+                  <option value="pc">PC</option>
+                  <option value="kg">KG</option>
+                  <option value="both">BOTH</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label className="input-label">Item Note (optional)</label>
+              <input className="input" value={modalNote} onChange={e => setModalNote(e.target.value)} placeholder="e.g. White shirt, delicate" />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-glass" onClick={() => setModalProduct(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmAddModal}>Add to Order</button>
             </div>
           </div>
         </div>
