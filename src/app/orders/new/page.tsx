@@ -353,12 +353,12 @@ export default function NewOrderPage() {
     if (selectedMainCategory) {
       const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
       if (def) {
-        if (def.kind === 'service') {
-          categoryMatch = def.services.includes(item.serviceId);
-        } else if (def.kind === 'category') {
-          categoryMatch = item.category === def.key;
+          if (def.kind === 'service') {
+            categoryMatch = Array.isArray(def.services) && def.services.includes(item.serviceId);
+          } else if (def.kind === 'category') {
+            categoryMatch = item.category === def.key;
+          }
         }
-      }
     }
 
     // Apply subcategory filter if selected (simple contains match)
@@ -573,15 +573,15 @@ export default function NewOrderPage() {
                 )}
                 {activeProduct && (
                   <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
-                    {activeProduct.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={activeProduct.image} alt={activeProduct.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
-                    ) : (
+                    {(activeProduct as any).image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={(activeProduct as any).image} alt={activeProduct.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                        ) : (
                       <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>{(activeProduct.icon as any) || '👕'}</div>
                     )}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{activeProduct.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeProduct.description || ''}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{(activeProduct as any).description || ''}</div>
 
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -732,9 +732,9 @@ export default function NewOrderPage() {
                           )}
                           
                           {/* Product Image / Icon */}
-                          {item.image ? (
+                          {(item as any).image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                            <img src={(item as any).image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
                           ) : (
                             <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
                           )}
