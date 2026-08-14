@@ -295,7 +295,11 @@ export default function DashboardPage() {
                             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.customerMobile}</div>
                           </td>
                           <td data-label="Amount" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{o.finalAmount.toLocaleString('en-IN')}</td>
-                          <td data-label="Payment"><span className={`badge ${payBadge(o.paymentStatus)}`}>{o.paymentStatus}</span></td>
+                          <td data-label="Payment">
+                            <span className={`badge ${payBadge(o.paymentStatus)}`}>
+                              {o.paymentStatus}{o.paymentMethod ? ` (${o.paymentMethod})` : ''}
+                            </span>
+                          </td>
                           <td data-label="Status"><span className={`badge ${statusBadge(o.orderStatus)}`}>{o.orderStatus}</span></td>
                           <td data-label="Date" style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>{format(new Date(o.createdAt), 'dd MMM, hh:mm a')}</td>
                         </tr>
