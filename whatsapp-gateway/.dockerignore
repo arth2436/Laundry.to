@@ -1,0 +1,6 @@
+node_modules
+npm-debug.log
+.wwebjs_cache
+whatsapp_sessions
+test_auth_info
+current-public-url.txt
