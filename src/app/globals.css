@@ -799,6 +799,99 @@ tr:last-child td {
   gap: 12px;
 }
 
+/* ═══════════════════════════════
+   POS / Catalog UI POLISH
+   ═══════════════════════════════ */
+.category-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.category-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.category-pill.active {
+  background: var(--primary-brand);
+  color: #fff;
+  border-color: var(--primary-brand);
+  box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+}
+
+.subcategory-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subcategory-chip {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.subcategory-chip.primary {
+  background: var(--primary-brand);
+  color: #fff;
+  border-color: var(--primary-brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.selected-category-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(18,115,255,0.08);
+  border: 1px solid rgba(18,115,255,0.12);
+  color: var(--primary-brand);
+  font-weight: 800;
+}
+
+.catalog-item-card {
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.12s ease;
+}
+
+.catalog-item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+}
+
+.custom-item-card {
+  border-style: dashed;
+}
+
+@media (max-width: 1100px) {
+  .search-input {
+    width: 100%;
+  }
+
+  .pos-layout {
+    gap: 16px;
+  }
+}
+
 .section-title {
   font-size: 15px;
   font-weight: 700;
