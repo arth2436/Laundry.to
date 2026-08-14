@@ -73,6 +73,14 @@ export default function NewOrderPage() {
   const [productListWeight, setProductListWeight] = useState<any>(1);
   const [productListUnit, setProductListUnit] = useState<BasketItem['unit']>('pc');
   const [productListNote, setProductListNote] = useState('');
+  const [showCustomPanel, setShowCustomPanel] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customRate, setCustomRate] = useState<number | ''>('');
+  const [customUnit, setCustomUnit] = useState<BasketItem['unit']>('pc');
+  const [customQty, setCustomQty] = useState(1);
+  const [customWeight, setCustomWeight] = useState<any>(1);
+  const [customNote, setCustomNote] = useState('');
+  const [customImage, setCustomImage] = useState<string | null>(null);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -191,25 +199,9 @@ export default function NewOrderPage() {
 
   // Add a quick Custom Item
   const handleAddCustomItem = () => {
-    const name = prompt('Enter custom item name:', 'Custom Garment');
-    if (!name) return;
-    const rateStr = prompt('Enter unit price (₹):', '20');
-    if (!rateStr) return;
-    const rate = parseFloat(rateStr) || 0;
-    const activeS = services.find(s => s.id === selectedService);
-    const serviceLabel = activeS?.label || 'Wash & Fold';
-    const unit = activeS?.defaultUnit || 'pc';
-
-    setBasket(prev => [...prev, {
-      id: uid(),
-      type: name,
-      quantity: 1,
-      weight: 1,
-      rate,
-      amount: rate,
-      unit,
-      serviceLabel
-    }]);
+    // open inline custom item panel instead of browser prompts
+    setCustomName(''); setCustomRate(''); setCustomUnit('pc'); setCustomQty(1); setCustomWeight(1); setCustomNote('');
+    setShowCustomPanel(true);
   };
 
   const confirmAddModal = () => {
@@ -504,7 +496,21 @@ export default function NewOrderPage() {
                 {/* Controls: Discount / Image / Item Note / Product List (show for Wash & Fold and others) */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 6 }}>
                   <button className="btn btn-glass" onClick={() => { const d = prompt('Apply discount amount (₹):', discount?.toString() || '0'); if (d !== null) setDiscount(d === '' ? '' : Number(d)); }}>Discount</button>
-                  <button className="btn btn-glass" onClick={() => { const url = prompt('Enter image URL for product preview (optional):', ''); if (url !== null) { /* store nowhere globally - used per-product */ } }}>Image</button>
+                  <button className="btn btn-glass" onClick={() => {
+                    // Persist image URL to selected product or active product
+                    const targetId = productListSelectedId || activeProduct?.id;
+                    const url = prompt('Enter image URL for product preview (optional):', '');
+                    if (url === null) return;
+                    if (!targetId) {
+                      // if no target, allow setting custom image for next custom item
+                      setCustomImage(url || null);
+                      return;
+                    }
+                    // find and update in-memory and DB
+                    const updated = serviceItems.map(si => si.id === targetId ? { ...si, image: url || null } : si);
+                    setServiceItems(updated);
+                    serviceItemsDB.save(updated);
+                  }}>Image</button>
                   <button className="btn btn-glass" onClick={() => { const n = prompt('Add item note (will open when adding items):', productListNote); if (n !== null) setProductListNote(n); }}>Item Note</button>
                   <button className={`btn ${showProductList ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowProductList(s => !s)}>Product List</button>
                 </div>
@@ -546,6 +552,37 @@ export default function NewOrderPage() {
                           }
                           return [...prev, { id: uid(), type: p.name, quantity: productListQty, weight: productListWeight, rate, amount: calculateAmount(productListQty, productListWeight, rate, unit), unit, serviceLabel: services.find(s => s.id === selectedService)?.label || '', note: productListNote, image: (p as any).image || null }];
                         });
+                      }}>Add</button>
+                    </div>
+                  </div>
+                )}
+                {/* Inline Custom Item Panel (replaces prompt flow) */}
+                {showCustomPanel && (
+                  <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input className="input" placeholder="Item name" value={customName} onChange={e => setCustomName(e.target.value)} style={{ minWidth: 160 }} />
+                      <input className="input" placeholder="Price" value={customRate} onChange={e => setCustomRate(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 100 }} />
+                      <select className="input" value={customUnit} onChange={e => setCustomUnit(e.target.value as any)} style={{ width: 90 }}>
+                        <option value="pc">PC</option>
+                        <option value="kg">KG</option>
+                        <option value="both">BOTH</option>
+                      </select>
+                      <input className="input" placeholder="Note (optional)" value={customNote} onChange={e => setCustomNote(e.target.value)} style={{ minWidth: 180 }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button className="btn btn-glass" onClick={() => setShowCustomPanel(false)}>Cancel</button>
+                      <button className="btn btn-primary" onClick={() => {
+                        if (!customName || customRate === '') return alert('Provide name and price');
+                        const activeS = services.find(s => s.id === selectedService);
+                        const serviceLabel = activeS?.label || 'Wash & Fold';
+                        const unit = customUnit || (activeS?.defaultUnit || 'pc');
+                        const rate = Number(customRate) || 0;
+                        setBasket(prev => [...prev, {
+                          id: uid(), type: customName, quantity: customQty, weight: customWeight, rate, amount: calculateAmount(customQty, customWeight, rate, unit), unit, serviceLabel, note: customNote, image: customImage || null
+                        }]);
+                        // reset
+                        setShowCustomPanel(false);
+                        setCustomName(''); setCustomRate(''); setCustomNote(''); setCustomImage(null); setCustomQty(1); setCustomWeight(1);
                       }}>Add</button>
                     </div>
                   </div>
