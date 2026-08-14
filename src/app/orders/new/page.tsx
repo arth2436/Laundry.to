@@ -73,6 +73,7 @@ export default function NewOrderPage() {
   const [productListWeight, setProductListWeight] = useState<any>(1);
   const [productListUnit, setProductListUnit] = useState<BasketItem['unit']>('pc');
   const [productListNote, setProductListNote] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [showCustomPanel, setShowCustomPanel] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customRate, setCustomRate] = useState<number | ''>('');
@@ -336,7 +337,8 @@ export default function NewOrderPage() {
   const filteredCatalog = serviceItems.filter(item => {
     const matchesService = item.serviceId === selectedService;
     const matchesCategory = item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (productSearch || searchQuery).toLowerCase();
+    const matchesSearch = q ? item.name.toLowerCase().includes(q) : true;
     const isEnabled = item.enabled;
     return matchesService && matchesCategory && matchesSearch && isEnabled;
   });
@@ -675,7 +677,13 @@ export default function NewOrderPage() {
                 )}
 
               {/* Interactive Items Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Search size={16} style={{ color: 'var(--text-muted)' }} />
+                  <input className="input" placeholder="Search products..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ width: 280 }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
                 {filteredCatalog.map(item => {
                   const currentService = services.find(s => s.id === selectedService);
                   const unit = item.unit || 'pc';
@@ -760,29 +768,6 @@ export default function NewOrderPage() {
                     </div>
                   );
                 })}
-
-                {/* Custom Item Card */}
-                <div
-                  onClick={handleAddCustomItem}
-                  style={{
-                    background: 'var(--bg-primary)',
-                    border: '1px dashed var(--primary-brand)',
-                    borderRadius: 12,
-                    padding: '14px 10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                  className="catalog-item-card"
-                >
-                  <span style={{ fontSize: 26, marginBottom: 8 }}>➕</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary-brand)', marginBottom: 4 }}>Custom Item</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Set custom price</span>
                 </div>
               </div>
             </div>
