@@ -389,9 +389,9 @@ export default function NewOrderPage() {
                   <input
                     className="input"
                     style={{ paddingLeft: 42, background: 'var(--bg-secondary)' }}
-                    placeholder="Search laundry catalog..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search products..."
+                    value={productSearch}
+                    onChange={e => setProductSearch(e.target.value)}
                   />
                 </div>
 
@@ -563,11 +563,7 @@ export default function NewOrderPage() {
 
               {/* Interactive Items Grid */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Search size={16} style={{ color: 'var(--text-muted)' }} />
-                  <input className="input" placeholder="Search products..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ width: 280 }} />
-                </div>
-
+              
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
                 {filteredCatalog.map(item => {
                   const currentService = services.find(s => s.id === selectedService);
