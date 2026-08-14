@@ -76,6 +76,10 @@ function initializeClient() {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
         '--disable-gpu',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       ]
@@ -129,6 +133,11 @@ function initializeClient() {
 }
 
 // ─── API Endpoints ────────────────────────────────────────────────────────────
+
+// Root Health Check for Render
+app.get('/', (req, res) => {
+  res.send('WhatsApp Gateway is running normally.');
+});
 
 // Status — returns current state + QR + public URL
 app.get('/status', (req, res) => {
