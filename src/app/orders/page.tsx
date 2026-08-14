@@ -226,10 +226,17 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
                         <td data-label="Payment Method">
                           {hasAccess(['admin']) ? (
                             <select className="input" style={{ padding: '6px 28px 6px 12px', fontSize: 12, width: 'auto', borderRadius: 20, height: 'auto', lineHeight: 1 }}
-                              value={o.paymentMethod === 'Cash' ? 'Cash' : 'Online'} onChange={e => updatePaymentMethod(o.id, e.target.value as PaymentMethod)}>
-                              <option>Cash</option><option>Online</option>
+                              value={o.paymentMethod} onChange={e => updatePaymentMethod(o.id, e.target.value as PaymentMethod)}>
+                              <option>Cash</option>
+                              <option>UPI</option>
+                              <option>Card</option>
+                              <option>Online</option>
                             </select>
-                          ) : <span className="badge badge-blue">{o.paymentMethod === 'Cash' ? 'Cash' : 'Online'}</span>}
+                          ) : (
+                            <span className={`badge ${o.paymentMethod === 'Cash' ? 'badge-blue' : o.paymentMethod === 'UPI' ? 'badge-green' : 'badge-gray'}`}>
+                              {o.paymentMethod || '—'}
+                            </span>
+                          )}
                         </td>
                         <td data-label="Status">
                           <select className="input" style={{ padding: '6px 28px 6px 12px', fontSize: 12, width: 'auto', borderRadius: 20, height: 'auto', lineHeight: 1 }}
