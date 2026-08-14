@@ -62,7 +62,7 @@ export default function NewOrderPage() {
   const [submissionError, setSubmissionError] = useState('');
   const [savedOrder, setSavedOrder] = useState<string | null>(null);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
-  const [modalProduct, setModalProduct] = useState<ServiceItem | null>(null);
+  const [activeProduct, setActiveProduct] = useState<ServiceItem | null>(null);
   const [modalQuantity, setModalQuantity] = useState(1);
   const [modalWeight, setModalWeight] = useState<any>(1);
   const [modalUnit, setModalUnit] = useState<BasketItem['unit']>('pc');
@@ -107,15 +107,17 @@ export default function NewOrderPage() {
   };
 
   const handleAddToBasket = (item: ServiceItem) => {
-    // open modal to allow quantity/notes before adding
+    // open inline product detail panel to allow quantity/notes before adding
     const currentService = services.find(s => s.id === selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
-    setModalProduct(item);
+    setActiveProduct(item);
     // initialize modal fields
     setModalQuantity(1);
     setModalWeight(1);
     setModalUnit(item.unit === 'kg' ? 'kg' : 'pc');
     setModalNote('');
+    // open basket on small screens
+    // setIsBasketOpen(true);
   };
 
   // Remove or update items from basket
@@ -205,14 +207,14 @@ export default function NewOrderPage() {
   };
 
   const confirmAddModal = () => {
-    if (!modalProduct) return;
+    if (!activeProduct) return;
     const currentService = services.find(s => s.id === selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
-    const rate = modalProduct.price ?? 0;
+    const rate = activeProduct.price ?? 0;
     const unit: BasketItem['unit'] = modalUnit;
 
     setBasket(prev => {
-      const existingIdx = prev.findIndex(b => b.type === modalProduct.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === modalNote);
+      const existingIdx = prev.findIndex(b => b.type === activeProduct.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === modalNote);
       if (existingIdx >= 0) {
         return prev.map((b, idx) => {
           if (idx !== existingIdx) return b;
@@ -223,14 +225,14 @@ export default function NewOrderPage() {
             weight: modalWeight,
             rate,
             note: modalNote,
-            image: (modalProduct as any).image || null,
+            image: (activeProduct as any).image || null,
             amount: calculateAmount(newQty, modalWeight, rate, unit)
           };
         });
       } else {
         return [...prev, {
           id: uid(),
-          type: modalProduct.name,
+          type: activeProduct.name,
           quantity: modalQuantity,
           weight: modalWeight,
           rate,
@@ -238,13 +240,13 @@ export default function NewOrderPage() {
           unit,
           serviceLabel,
           note: modalNote,
-          image: (modalProduct as any).image || null
+          image: (activeProduct as any).image || null
         }];
       }
     });
 
-    // close modal
-    setModalProduct(null);
+    // close active product panel
+    setActiveProduct(null);
   };
 
   const openEditModalForItem = (itemId: string) => {
@@ -252,7 +254,7 @@ export default function NewOrderPage() {
     if (!found) return;
     // find matching service item to get price/image
     const matched = serviceItems.find(si => si.name.toLowerCase() === found.type.toLowerCase());
-    setModalProduct(matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem));
+    setActiveProduct(matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem));
     setModalQuantity(found.quantity);
     setModalWeight(found.weight);
     setModalUnit(found.unit);
@@ -492,6 +494,53 @@ export default function NewOrderPage() {
                   );
                 })}
               </div>
+
+                {/* Inline Product Detail Panel (appears when a product is selected) */}
+                {activeProduct && (
+                  <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {activeProduct.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={activeProduct.image} alt={activeProduct.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                    ) : (
+                      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>{(activeProduct.icon as any) || '👕'}</div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>{activeProduct.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeProduct.description || ''}</div>
+
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button className="btn btn-glass" onClick={() => setModalQuantity(q => Math.max(1, q - 1))}>-</button>
+                          <div style={{ minWidth: 48, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{modalQuantity}</div>
+                          <button className="btn btn-glass" onClick={() => setModalQuantity(q => q + 1)}>+</button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input type="number" step="0.05" min="0" value={modalWeight} onChange={e => setModalWeight(e.target.value)} style={{ width: 80, padding: '8px 10px' }} />
+                          <select value={modalUnit} onChange={e => setModalUnit(e.target.value as any)} style={{ padding: '8px 10px' }}>
+                            <option value="pc">PC</option>
+                            <option value="kg">KG</option>
+                            <option value="both">BOTH</option>
+                          </select>
+                        </div>
+
+                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Price</div>
+                          <div style={{ fontWeight: 900, color: 'var(--primary-brand)', fontSize: 18 }}>₹{(activeProduct.price ?? 0).toFixed(0)}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 8 }}>
+                        <input className="input" placeholder="Item note (optional)" value={modalNote} onChange={e => setModalNote(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <button className="btn btn-primary" onClick={confirmAddModal}>Add to Order</button>
+                      <button className="btn btn-glass" onClick={() => setActiveProduct(null)}>Close</button>
+                    </div>
+                  </div>
+                )}
 
               {/* Interactive Items Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
@@ -950,54 +999,7 @@ export default function NewOrderPage() {
       )}
 
       {/* ITEM ADD / EDIT MODAL */}
-      {modalProduct && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setModalProduct(null)}>
-          <div className="card" style={{ width: '100%', maxWidth: 520, padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                {modalProduct.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={modalProduct.image} alt={modalProduct.name} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8 }} />
-                ) : (
-                  <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{(modalProduct.icon as any) || '👕'}</div>
-                )}
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 16 }}>{modalProduct.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{modalProduct.description || ''}</div>
-                </div>
-              </div>
-              <button className="btn btn-glass btn-sm" onClick={() => setModalProduct(null)}>Cancel</button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 18, alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button className="btn btn-glass" onClick={() => setModalQuantity(q => Math.max(1, q - 1))}>-</button>
-                <div style={{ minWidth: 54, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{modalQuantity}</div>
-                <button className="btn btn-glass" onClick={() => setModalQuantity(q => q + 1)}>+</button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="number" step="0.05" min="0" value={modalWeight} onChange={e => setModalWeight(e.target.value)} style={{ width: 80, padding: '8px 10px' }} />
-                <select value={modalUnit} onChange={e => setModalUnit(e.target.value as any)} style={{ padding: '8px 10px' }}>
-                  <option value="pc">PC</option>
-                  <option value="kg">KG</option>
-                  <option value="both">BOTH</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label className="input-label">Item Note (optional)</label>
-              <input className="input" value={modalNote} onChange={e => setModalNote(e.target.value)} placeholder="e.g. White shirt, delicate" />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn btn-glass" onClick={() => setModalProduct(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={confirmAddModal}>Add to Order</button>
-            </div>
-          </div>
-        </div>
-      )}
+  
 
     </div>
   );
