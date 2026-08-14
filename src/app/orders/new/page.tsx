@@ -335,12 +335,10 @@ export default function NewOrderPage() {
 
   // Filter catalog items dynamically based on selectedService and category
   const filteredCatalog = serviceItems.filter(item => {
-    const matchesService = item.serviceId === selectedService;
-    const matchesCategory = item.category === selectedCategory;
     const q = (productSearch || searchQuery).toLowerCase();
     const matchesSearch = q ? item.name.toLowerCase().includes(q) : true;
     const isEnabled = item.enabled;
-    return matchesService && matchesCategory && matchesSearch && isEnabled;
+    return matchesSearch && isEnabled;
   });
 
   if (!mounted || !isAuthenticated) return null;
@@ -440,123 +438,10 @@ export default function NewOrderPage() {
                 </label>
               </div>
 
-              {/* Services Selector Tabs */}
-              <div className="services-tabs">
-                {services.map(s => {
-                  const isSelected = selectedService === s.id;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setSelectedService(s.id);
-                        // Footwear category auto-selects if shoe cleaning service clicked
-                        if (s.id === 'shoe-clean') {
-                          setSelectedCategory('Footwear');
-                        } else if (s.id === 'household-clean') {
-                          setSelectedCategory('Household');
-                        } else if (selectedCategory === 'Footwear' || selectedCategory === 'Household') {
-                          setSelectedCategory('MEN');
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        padding: '10px 12px',
-                        borderRadius: 10,
-                        textAlign: 'left',
-                        transition: 'var(--transition)',
-                        background: isSelected ? 'var(--primary-brand)' : 'var(--bg-primary)',
-                        color: isSelected ? '#ffffff' : 'var(--text-primary)',
-                        border: isSelected ? '1px solid var(--primary-brand)' : '1px solid var(--border-light)',
-                        boxShadow: isSelected ? '0 6px 12px rgba(0, 102, 204, 0.25)' : 'var(--shadow-sm)',
-                        cursor: 'pointer'
-                      }}
-                      className={isSelected ? '' : 'btn-hover-glow'}
-                    >
-                      <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{s.label}</span>
-                      <span style={{ fontSize: 8.5, opacity: isSelected ? 0.8 : 0.6, marginTop: 2, fontWeight: 550, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{s.sub}</span>
-                    </button>
-                  );
-                })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <Search size={16} style={{ color: 'var(--text-muted)' }} />
+                <input className="input" placeholder="Search products..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ width: 340 }} />
               </div>
-
-              {/* Categories Selector Tabs */}
-              <div className="categories-tabs">
-                {CATEGORIES.map(cat => {
-                  const isSelected = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      style={{
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        transition: 'var(--transition)',
-                        background: isSelected ? 'var(--primary-brand)' : 'var(--bg-primary)',
-                        color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                        border: isSelected ? '1px solid var(--primary-brand)' : '1px solid var(--border-light)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
-
-                {/* Controls: Discount / Image / Item Note / Product List (show for Wash & Fold and others) */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 6, alignItems: 'center' }}>
-                  <button className={`btn ${showDiscountInline ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowDiscountInline(s => !s)}>Discount</button>
-                  <button className={`btn ${showImageInput ? 'btn-primary' : 'btn-glass'}`} onClick={() => {
-                    setShowImageInput(s => !s);
-                    // if showing, prefill with current image if available
-                    const targetId = productListSelectedId || activeProduct?.id;
-                    const target = serviceItems.find(si => si.id === targetId);
-                    setImageInputValue(target?.image || '');
-                  }}>Image</button>
-                  <button className={`btn ${showNoteInline ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowNoteInline(s => !s)}>Item Note</button>
-                  <button className={`btn ${showProductList ? 'btn-primary' : 'btn-glass'}`} onClick={() => setShowProductList(s => !s)}>Product List</button>
-                </div>
-
-                {/* Inline Discount / Note / Image inputs */}
-                {showDiscountInline && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <input className="input" placeholder="Discount (₹)" value={discount} onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 120 }} />
-                    <button className="btn btn-glass" onClick={() => setShowDiscountInline(false)}>Done</button>
-                  </div>
-                )}
-
-                {showNoteInline && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <input className="input" placeholder="Order note" value={productListNote} onChange={e => setProductListNote(e.target.value)} style={{ minWidth: 240 }} />
-                    <button className="btn btn-glass" onClick={() => setShowNoteInline(false)}>Done</button>
-                  </div>
-                )}
-
-                {showImageInput && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <input className="input" placeholder="Image URL" value={imageInputValue} onChange={e => setImageInputValue(e.target.value)} style={{ minWidth: 360 }} />
-                    <button className="btn btn-glass" onClick={() => { setShowImageInput(false); setImageInputValue(''); }}>Cancel</button>
-                    <button className="btn btn-primary" onClick={() => {
-                      const url = imageInputValue || '';
-                      const targetId = productListSelectedId || activeProduct?.id;
-                      if (!targetId) {
-                        setCustomImage(url || null);
-                        setShowImageInput(false);
-                        setImageInputValue('');
-                        return;
-                      }
-                      const updated = serviceItems.map(si => si.id === targetId ? { ...si, image: url || null } : si);
-                      setServiceItems(updated);
-                      serviceItemsDB.save(updated);
-                      setShowImageInput(false);
-                      setImageInputValue('');
-                    }}>Save</button>
-                  </div>
-                )}
 
                 {/* Product List selector (appears when Product List enabled) */}
                 {showProductList && (
