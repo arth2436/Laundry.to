@@ -14,6 +14,14 @@ function uid() { return Math.random().toString(36).slice(2) + Date.now().toStrin
 
 const CATEGORIES = ['MEN', 'Women', 'Kids', 'Footwear', 'Household'];
 
+const CATEGORY_DEFS = [
+  { id: 'footwear', label: 'Footwear', kind: 'category', key: 'Footwear', subs: ['Shoes', 'Socks'] },
+  { id: 'wash-and-steam', label: 'WASH AND STEAM', kind: 'service', services: ['steam-iron', 'steam-ironing'], subs: ['Men', 'Women'] },
+  { id: 'dry-clean', label: 'DRY CLEAN', kind: 'service', services: ['dry-clean'], subs: ['Men', 'Women'] },
+  { id: 'wash-and-fold', label: 'WASH AND FOLD', kind: 'service', services: ['wash-fold', 'express-laundry', 'premium-wash'], subs: ['Men', 'Women', 'Kids'] },
+  { id: 'household', label: 'Household', kind: 'category', key: 'Household', subs: ['Bedsheet', 'Towel', 'Blanket'] },
+];
+
 interface BasketItem {
   id: string;
   type: string;
@@ -42,6 +50,8 @@ export default function NewOrderPage() {
   const [selectedCategory, setSelectedCategory] = useState('MEN');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
 
   // Customer Selector & Inputs
   const [cusQuery, setCusQuery] = useState('');
@@ -338,7 +348,27 @@ export default function NewOrderPage() {
     const q = (productSearch || searchQuery).toLowerCase();
     const matchesSearch = q ? item.name.toLowerCase().includes(q) : true;
     const isEnabled = item.enabled;
-    return matchesSearch && isEnabled;
+    // Apply main category / service filtering if selected
+    let categoryMatch = true;
+    if (selectedMainCategory) {
+      const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
+      if (def) {
+        if (def.kind === 'service') {
+          categoryMatch = def.services.includes(item.serviceId);
+        } else if (def.kind === 'category') {
+          categoryMatch = item.category === def.key;
+        }
+      }
+    }
+
+    // Apply subcategory filter if selected (simple contains match)
+    let subMatch = true;
+    if (selectedSubCategory) {
+      const sub = selectedSubCategory.toLowerCase();
+      subMatch = item.name.toLowerCase().includes(sub) || (item.category || '').toLowerCase().includes(sub);
+    }
+
+    return matchesSearch && isEnabled && categoryMatch && subMatch;
   });
 
   // Deduplicated catalog (used when searching) - keep one representative per product name
@@ -408,6 +438,19 @@ export default function NewOrderPage() {
                     onChange={e => setProductSearch(e.target.value)}
                   />
                 </div>
+                  {/* Category selector row */}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12 }}>
+                    {CATEGORY_DEFS.map(c => (
+                      <button
+                        key={c.id}
+                        className={selectedMainCategory === c.id ? 'btn btn-primary' : 'btn btn-glass'}
+                        onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
+                        style={{ textTransform: 'uppercase', fontSize: 12, padding: '8px 10px' }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
 
                 {/* Due Date Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
@@ -576,6 +619,19 @@ export default function NewOrderPage() {
               {productSearch.trim() ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim()}</h3>
+                  {/* Subcategory chips */}
+                  {selectedMainCategory && (
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      {(() => {
+                        const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
+                        if (!def) return null;
+                        return def.subs.map(s => (
+                          <button key={s} className={selectedSubCategory === s ? 'btn btn-primary' : 'btn btn-glass'} style={{ padding: '6px 8px', fontSize: 12 }} onClick={() => setSelectedSubCategory(prev => prev === s ? null : s)}>{s}</button>
+                        ));
+                      })()}
+                    </div>
+                  )}
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
                   {dedupedCatalog.map(item => {
                     const currentService = services.find(s => s.id === selectedService);
