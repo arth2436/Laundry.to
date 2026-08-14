@@ -430,28 +430,39 @@ export default function NewOrderPage() {
               <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '18px 22px', flexWrap: 'wrap' }}>
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
                   {/* Categories above search */}
-                  <div className="category-pills" style={{ width: '100%', justifyContent: 'center' }}>
-                    {CATEGORY_DEFS.map(c => (
-                      <button
-                        key={c.id}
-                        className={`category-pill ${selectedMainCategory === c.id ? 'active' : ''}`}
-                        onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
-                        style={{ textTransform: 'uppercase' }}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
+                  <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div className="category-pills" style={{ width: '70%', justifyContent: 'flex-start', paddingLeft: 6 }}>
+                      {CATEGORY_DEFS.map(c => (
+                        <button
+                          key={c.id}
+                          className={`category-pill ${selectedMainCategory === c.id ? 'active' : ''}`}
+                          onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
+                          style={{ textTransform: 'uppercase' }}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
 
+                    <div style={{ width: '28%', display: 'flex', justifyContent: 'flex-end' }}>
+                      {selectedMainCategory && (
+                        <div className="selected-category-panel">
+                          {CATEGORY_DEFS.find(d => d.id === selectedMainCategory)?.label} ({filteredCatalog.length} clothes approx)
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   {/* Centered, larger search input */}
-                  <div style={{ position: 'relative', width: '68%', minWidth: 360, maxWidth: 920 }}>
-                    <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      className="search-input search-input--large"
-                      placeholder="Search products..."
-                      value={productSearch}
-                      onChange={e => setProductSearch(e.target.value)}
-                    />
+                  <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ position: 'relative', width: '64%', minWidth: 360, maxWidth: 920 }}>
+                      <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input
+                        className="search-input search-input--large"
+                        placeholder="Search products..."
+                        value={productSearch}
+                        onChange={e => setProductSearch(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
 
