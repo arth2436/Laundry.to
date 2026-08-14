@@ -85,6 +85,8 @@ export default function NewOrderPage() {
   const [showNoteInline, setShowNoteInline] = useState(false);
   const [showImageInput, setShowImageInput] = useState(false);
   const [imageInputValue, setImageInputValue] = useState('');
+  const [showOrderNoteInline, setShowOrderNoteInline] = useState(false);
+  const [orderNoteInput, setOrderNoteInput] = useState('');
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -407,13 +409,19 @@ export default function NewOrderPage() {
                   </div>
                 </div>
 
-                {/* Notes Shortcut */}
-                <button className="btn btn-glass" style={{ gap: 8, height: 42 }} onClick={() => {
-                  const newNote = prompt('Add preferences or instructions for this order:', notes);
-                  if (newNote !== null) setNotes(newNote);
-                }}>
-                  <Settings2 size={16} /> Note
-                </button>
+                {/* Notes Shortcut (order-level) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button className="btn btn-glass" style={{ gap: 8, height: 42 }} onClick={() => { setShowOrderNoteInline(s => !s); setOrderNoteInput(notes); }}>
+                    <Settings2 size={16} /> Note
+                  </button>
+                </div>
+
+                {showOrderNoteInline && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="input" placeholder="Order note / preferences" value={orderNoteInput} onChange={e => setOrderNoteInput(e.target.value)} style={{ minWidth: 280 }} />
+                    <button className="btn btn-glass" onClick={() => { setNotes(orderNoteInput); setShowOrderNoteInline(false); }}>Save</button>
+                  </div>
+                )}
 
                 {/* Priority Toggle */}
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
