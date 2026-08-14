@@ -616,107 +616,139 @@ export default function NewOrderPage() {
                 )}
 
               {/* Interactive Items Grid */}
-              {productSearch.trim() ? (
+              {(productSearch.trim() || selectedMainCategory) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim()}</h3>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim() || (CATEGORY_DEFS.find(d => d.id === selectedMainCategory)?.label || '')}</h3>
+                    {selectedMainCategory && (
+                      <div style={{ background: 'rgba(18,115,255,0.08)', border: '1px solid rgba(18,115,255,0.12)', color: 'var(--primary-brand)', padding: '8px 12px', borderRadius: 10, fontWeight: 800, fontSize: 13 }}>
+                        {CATEGORY_DEFS.find(d => d.id === selectedMainCategory)?.label} ({filteredCatalog.length} clothes approx)
+                      </div>
+                    )}
+                  </div>
+
                   {/* Subcategory chips */}
                   {selectedMainCategory && (
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       {(() => {
                         const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
                         if (!def) return null;
-                        return def.subs.map(s => (
-                          <button key={s} className={selectedSubCategory === s ? 'btn btn-primary' : 'btn btn-glass'} style={{ padding: '6px 8px', fontSize: 12 }} onClick={() => setSelectedSubCategory(prev => prev === s ? null : s)}>{s}</button>
-                        ));
+                        return [
+                          <button key="mixed" className={'btn btn-primary'} style={{ padding: '6px 8px', fontSize: 12 }}>Mixed any ({filteredCatalog.length} clothes approx)</button>,
+                          ...def.subs.map(s => (
+                            <button key={s} className={selectedSubCategory === s ? 'btn btn-primary' : 'btn btn-glass'} style={{ padding: '6px 8px', fontSize: 12 }} onClick={() => setSelectedSubCategory(prev => prev === s ? null : s)}>{s}</button>
+                          ))
+                        ];
                       })()}
                     </div>
                   )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
-                  {dedupedCatalog.map(item => {
-                    const currentService = services.find(s => s.id === selectedService);
-                    const unit = item.unit || 'pc';
-                    const rate = item.price ?? 0;
+                    {/* Custom Item card first */}
+                    <div
+                      onClick={handleAddCustomItem}
+                      style={{
+                        background: 'var(--bg-primary)',
+                        border: '1px dashed var(--border-light)',
+                        borderRadius: 12,
+                        padding: '14px 10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}
+                    >
+                      <div style={{ width: 44, height: 44, borderRadius: 8, background: 'linear-gradient(135deg,#f3f6ff,#eef7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>+</div>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)' }}>Custom Item</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>₹0.00</span>
+                    </div>
+                    {dedupedCatalog.map(item => {
+                      const currentService = services.find(s => s.id === selectedService);
+                      const unit = item.unit || 'pc';
+                      const rate = item.price ?? 0;
 
-                    // Check if in basket
-                    const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
-                    const isHovered = hoveredCard === item.name;
-                    
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => handleAddToBasket(item)}
-                        onMouseEnter={() => setHoveredCard(item.name)}
-                        onMouseLeave={() => setHoveredCard(null)}
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
-                          borderRadius: 12,
-                          padding: '14px 10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          textAlign: 'center',
-                          position: 'relative',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
-                        }}
-                        className="catalog-item-card"
-                      >
-                        {inBasket && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeBasketItem(inBasket.id);
-                            }}
-                            title="Remove from basket"
-                            style={{
-                              position: 'absolute',
-                              top: -8,
-                              right: -8,
-                              width: 22,
-                              height: 22,
-                              borderRadius: '50%',
-                              background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
-                              color: '#ffffff',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: isHovered ? 8 : 10,
-                              fontWeight: 800,
-                              border: '2px solid #ffffff',
-                              cursor: 'pointer',
-                              boxShadow: 'var(--shadow-sm)',
-                              zIndex: 10,
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {isHovered ? '✕' : inBasket.quantity}
-                          </button>
-                        )}
-                        
-                        {/* Product Image / Icon */}
-                        {item.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                        ) : (
-                          <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
-                        )}
-                        
-                        {/* Name */}
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                          {item.name}
-                        </span>
-                        
-                        {/* Price & Unit */}
-                        <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
-                          ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
-                        </span>
-                      </div>
-                    );
-                  })}
+                      // Check if in basket
+                      const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
+                      const isHovered = hoveredCard === item.name;
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleAddToBasket(item)}
+                          onMouseEnter={() => setHoveredCard(item.name)}
+                          onMouseLeave={() => setHoveredCard(null)}
+                          style={{
+                            background: 'var(--bg-primary)',
+                            border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
+                            borderRadius: 12,
+                            padding: '14px 10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
+                          }}
+                          className="catalog-item-card"
+                        >
+                          {inBasket && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeBasketItem(inBasket.id);
+                              }}
+                              title="Remove from basket"
+                              style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                width: 22,
+                                height: 22,
+                                borderRadius: '50%',
+                                background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: isHovered ? 8 : 10,
+                                fontWeight: 800,
+                                border: '2px solid #ffffff',
+                                cursor: 'pointer',
+                                boxShadow: 'var(--shadow-sm)',
+                                zIndex: 10,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {isHovered ? '✕' : inBasket.quantity}
+                            </button>
+                          )}
+                          
+                          {/* Product Image / Icon */}
+                          {item.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                          ) : (
+                            <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
+                          )}
+                          
+                          {/* Name */}
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {item.name}
+                          </span>
+                          
+                          {/* Price & Unit */}
+                          <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
+                            ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
