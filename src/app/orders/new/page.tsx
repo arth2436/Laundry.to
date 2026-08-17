@@ -1,1207 +1,864 @@
-'use client';
-import { useEffect, useState } from 'react';
+"use client";
+
+import React, { useState } from 'react';
+import styles from './new-order.module.css';
+import { ShoppingBag, Shirt, Search, Calendar, ChevronDown, ChevronUp, ToggleLeft, Activity, Layers, Minus, Plus, Upload, Camera, Image as ImageIcon, Trash2, Ban, X, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
 import { useCustomerStore } from '@/store/customerStore';
 import { useOrderStore } from '@/store/orderStore';
-import { servicesDB, serviceItemsDB } from '@/lib/db';
-import Sidebar from '@/components/layout/Sidebar';
-import TopBar from '@/components/layout/TopBar';
-import { Plus, Trash2, Search, Calculator, Tag, FileText, X, Check, Calendar, Settings2, Sparkles, UserPlus, Layers } from 'lucide-react';
-import { LaundryItem, PaymentMethod, Service, ServiceItem } from '@/types';
-
-function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-
-const CATEGORIES = ['MEN', 'Women', 'Kids', 'Footwear', 'Household'];
-
-const CATEGORY_DEFS = [
-  { id: 'footwear', label: 'Footwear', kind: 'category', key: 'Footwear', subs: ['Shoes', 'Socks'] },
-  { id: 'wash-and-fold', label: 'WASH AND FOLD', kind: 'service', services: ['wash-fold', 'express-laundry', 'premium-wash'], subs: ['Men', 'Women', 'Kids'] },
-  { id: 'wash-and-steam', label: 'WASH AND STEAM', kind: 'service', services: ['steam-iron', 'steam-ironing'], subs: ['Men', 'Women'] },
-  { id: 'dry-clean', label: 'DRY CLEAN', kind: 'service', services: ['dry-clean'], subs: ['Men', 'Women'] },
-  { id: 'household', label: 'Household', kind: 'category', key: 'Household', subs: ['Bedsheet', 'Towel', 'Blanket'] },
-];
-
-interface BasketItem {
-  id: string;
-  type: string;
-  quantity: number;
-  weight: number | string;
-  rate: number;
-  amount: number;
-  unit: 'pc' | 'kg' | 'both';
-  serviceLabel: string;
-  note?: string;
-  image?: string | null;
-}
+import { Customer } from '@/types';
+import { useEffect } from 'react';
 
 export default function NewOrderPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-  const { customers, load: loadC, searchCustomers, addCustomer } = useCustomerStore();
+  const { customers, load, searchCustomers, addCustomer } = useCustomerStore();
   const { addOrder } = useOrderStore();
-
-  // Services & Items loaded from DB
-  const [services, setServices] = useState<Service[]>([]);
-  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
-
-  // POS Filter States
-  const [selectedService, setSelectedService] = useState('wash-fold');
-  const [selectedCategory, setSelectedCategory] = useState('MEN');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
-
-  // Customer Selector & Inputs
-  const [cusQuery, setCusQuery] = useState('');
-  const [selectedCus, setSelectedCus] = useState<{ id: string; name: string; mobile: string; email?: string } | null>(null);
-  const [showAddCusModal, setShowAddCusModal] = useState(false);
-  const [newCusName, setNewCusName] = useState('');
-  const [newCusMobile, setNewCusMobile] = useState('');
-
-  // Order Details
-  const [basket, setBasket] = useState<BasketItem[]>([]);
-  const [discount, setDiscount] = useState<number | ''>('');
-  const [payment, setPayment] = useState<PaymentMethod>('Cash');
-  const [payStatus, setPayStatus] = useState<'Paid' | 'Unpaid' | 'Partial'>('Unpaid');
-  const [isPriority, setIsPriority] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [delivery, setDelivery] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [submissionError, setSubmissionError] = useState('');
-  const [savedOrder, setSavedOrder] = useState<string | null>(null);
-  const [isBasketOpen, setIsBasketOpen] = useState(false);
-  type DraftItem = {
-    internalId: string;
-    product: ServiceItem;
-    quantity: number;
-    weight: any;
-    unit: BasketItem['unit'];
-    note: string;
-  };
-  const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
-  const [showProductList, setShowProductList] = useState(false);
-  const [productListSelectedId, setProductListSelectedId] = useState<string | null>(null);
-  const [productListQty, setProductListQty] = useState(1);
-  const [productListWeight, setProductListWeight] = useState<any>(1);
-  const [productListUnit, setProductListUnit] = useState<BasketItem['unit']>('pc');
-  const [productListNote, setProductListNote] = useState('');
-  const [productSearch, setProductSearch] = useState('');
-  const [showCustomPanel, setShowCustomPanel] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customRate, setCustomRate] = useState<number | ''>('');
-  const [customUnit, setCustomUnit] = useState<BasketItem['unit']>('pc');
-  const [customQty, setCustomQty] = useState(1);
-  const [customWeight, setCustomWeight] = useState<any>(1);
-  const [customNote, setCustomNote] = useState('');
-  const [customImage, setCustomImage] = useState<string | null>(null);
-  const [showDiscountInline, setShowDiscountInline] = useState(false);
-  const [showNoteInline, setShowNoteInline] = useState(false);
-  const [showImageInput, setShowImageInput] = useState(false);
-  const [imageInputValue, setImageInputValue] = useState('');
-  const [showOrderNoteInline, setShowOrderNoteInline] = useState(false);
-  const [orderNoteInput, setOrderNoteInput] = useState('');
+  const [orderStep, setOrderStep] = useState<'search' | 'create'>('search');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [selectedCustomerForOrder, setSelectedCustomerForOrder] = useState<Customer | null>(null);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [addForm, setAddForm] = useState({ name: '', mobile: '', email: '' });
+  const [addErr, setAddErr] = useState('');
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
-    if (mounted && !isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router, mounted]);
+    setMounted(true);
+    load();
+  }, [load]);
 
-  useEffect(() => {
-    if (mounted) {
-      loadC();
-      const allS = servicesDB.getAll();
-      const allI = serviceItemsDB.getAll();
-      setServices(allS);
-      setServiceItems(allI);
-      if (allS.length > 0) {
-        setSelectedService(allS[0].id);
-      }
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addForm.name || !addForm.mobile) { setAddErr('Name and mobile are required.'); return; }
+    if (!/^\d{10}$/.test(addForm.mobile)) { setAddErr('Mobile must be 10 digits.'); return; }
+    const newC = addCustomer(addForm);
+    setAddForm({ name: '', mobile: '', email: '' });
+    setAddErr('');
+    setShowAddCustomer(false);
+    setSelectedCustomerForOrder(newC);
+  };
+  
+  const displayedCustomers = customerSearchQuery ? searchCustomers(customerSearchQuery) : customers;
+
+  const [selectedItem, setSelectedItem] = useState<{ id: number; name: string; price: number; quantity: number; type: string; subType: string; imageText?: string; isShirtBan?: boolean; minPrice?: number; isCustom?: boolean } | null>(null);
+  const [isDiscountExpanded, setIsDiscountExpanded] = useState(true);
+  const [activeTab, setActiveTab] = useState('Discount');
+  const [activeCategory, setActiveCategory] = useState('WASH AND FOLD');
+  const [activeSubCategory, setActiveSubCategory] = useState('Mixed any (5 clothes approx)');
+  const [itemNoteText, setItemNoteText] = useState('');
+  const [productsList, setProductsList] = useState<{ id: number; name: string; quantity: number; search: string; showSuggestions: boolean }[]>([]);
+
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    if (category === 'FOOTWEAR') {
+      setActiveSubCategory('Footware');
+    } else {
+      setActiveSubCategory('Mixed any (5 clothes approx)');
     }
-  }, [loadC, mounted]);
-
-  // Set default expected delivery date (3 days from now)
-  useEffect(() => {
-    if (mounted && !delivery) {
-      const threeDaysLater = new Date();
-      threeDaysLater.setDate(threeDaysLater.getDate() + 3);
-      setDelivery(threeDaysLater.toISOString().split('T')[0]);
-    }
-  }, [mounted, delivery]);
-
-  // Reload service items when page comes back into focus (for price updates from Settings)
-  useEffect(() => {
-    if (!mounted) return;
-    
-    const refreshItems = () => {
-      const allS = servicesDB.getAll();
-      const allI = serviceItemsDB.getAll();
-      setServices(allS);
-      setServiceItems(allI);
-      // Log for debugging
-      const shirt = allI.find(i => i.name === 'Shirt');
-      if (shirt) {
-        console.log('✓ Prices refreshed - Shirt price:', shirt.price);
-      }
-    };
-    
-    // Listen for visibility change (when switching between tabs)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Page became visible, refreshing prices...');
-        refreshItems();
-      }
-    };
-    
-    // Listen for window focus (when returning to the window)
-    const handleFocus = () => {
-      console.log('Window focused, refreshing prices...');
-      refreshItems();
-    };
-    
-    // Listen for storage changes from other tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'lms_service_items') {
-        console.log('Storage changed, refreshing prices...');
-        refreshItems();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [mounted]);
-
-  const cusResults = cusQuery.trim().length > 0 ? searchCustomers(cusQuery) : customers.slice(0, 6);
-
-  // Add Item to basket from visual catalog grid
-  const calculateAmount = (qty: number, weightVal: any, rate: number, unit: string) => {
-    const w = (unit === 'kg' || unit === 'both') ? (parseFloat(weightVal.toString()) || 0) : 1;
-    const q = (unit === 'pc' || unit === 'both') ? qty : 1;
-    return Math.round(q * w * rate);
   };
 
-  const handleAddToBasket = (item: ServiceItem) => {
-    setDraftItems(prev => [...prev, {
-      internalId: uid(),
-      product: item,
+  const AVAILABLE_PRODUCTS = [
+    "Bedsheet", "Blanket", "Blazer", "Boots", "Carpet", "Comforter", "Curtains", 
+    "Designer Suit", "Gown", "Heels", "Jeans", "Kurta", "Kurti", "Leather Jacket", 
+    "Leather Shoes", "Lehenga", "Pillow Cover", "Premium Jacket", "Sandals", 
+    "Saree", "School Uniform", "Sherwani", "Shirt", "Silk Dress", "Silk Saree", 
+    "Sneakers", "Sofa Cover", "Sports Shoes", "Suit", "T-Shirt", "Towel", 
+    "Trouser", "Wedding Dress"
+  ];
+
+  const handleAddProduct = () => {
+    setProductsList([...productsList, { id: Date.now(), name: '', quantity: 1, search: '', showSuggestions: false }]);
+  };
+
+  const handleUpdateProductSearch = (id: number, text: string) => {
+    setProductsList(prev => prev.map(p => p.id === id ? { ...p, search: text, showSuggestions: true } : p));
+  };
+
+  const handleSelectProduct = (id: number, name: string) => {
+    setProductsList(prev => prev.map(p => p.id === id ? { ...p, name, search: name, showSuggestions: false } : p));
+  };
+
+  const handleUpdateProductQty = (id: number, delta: number) => {
+    const newList = productsList.map(p => p.id === id ? { ...p, quantity: Math.max(0, p.quantity + delta) } : p);
+    setProductsList(newList);
+    if (selectedItem?.isCustom) {
+      const hasAnyPrice = newList.some(p => (p as any).price);
+      if (hasAnyPrice) {
+        const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+        setSelectedItem({...selectedItem, price: total});
+      }
+    }
+  };
+
+  const handleRemoveProduct = (id: number) => {
+    const newList = productsList.filter(p => p.id !== id);
+    setProductsList(newList);
+    if (selectedItem?.isCustom) {
+      const hasAnyPrice = newList.some(p => (p as any).price);
+      if (hasAnyPrice) {
+        const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+        setSelectedItem({...selectedItem, price: total});
+      }
+    }
+  };
+
+  const handleWashFoldClick = () => {
+    setSelectedItem({
+      id: 1,
+      name: "WASH AND FOLD",
+      price: 80,
       quantity: 1,
-      weight: 1,
-      unit: item.unit === 'kg' ? 'kg' : 'pc',
-      note: ''
-    }]);
+      type: "WASH AND FOLD (5 CLOTHES APPROX)",
+      subType: "WASH AND FOLD (5 clothes approx)/Mixed any (5 clothes",
+      imageText: "WASH\n&\nFOLD"
+    });
   };
 
-  // Remove or update items from basket
-  const updateBasketQty = (id: string, delta: number) => {
-    setBasket(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const newQty = Math.max(1, item.quantity + delta);
-      return {
-        ...item,
-        quantity: newQty,
-        amount: calculateAmount(newQty, item.weight, item.rate, item.unit)
-      };
-    }));
+  const handleWashSteamClick = () => {
+    setSelectedItem({
+      id: 2,
+      name: "WASH AND STEAM IRON",
+      price: 110,
+      quantity: 1,
+      type: "WASH AND STEAM (5 CLOTHES APPROX)",
+      subType: "Wash and Steam (5 clothes approx)/Mixed any (5 clothes",
+      imageText: "WASH\n&\nSTEAM"
+    });
   };
 
-  const setBasketUnit = (id: string, newUnit: BasketItem['unit']) => {
-    setBasket(prev => prev.map(item => {
-      if (item.id !== id) return item;
-
-      const matchedService = services.find(s => s.label === item.serviceLabel);
-      const matched = serviceItems.find(si => si.name.toLowerCase() === item.type.toLowerCase() && si.serviceId === matchedService?.id);
-      let rate = item.rate;
-      if (matched) {
-        if (newUnit === matched.unit) {
-          rate = matched.price;
-        }
-      }
-
-      return {
-        ...item,
-        unit: newUnit,
-        rate,
-        amount: calculateAmount(item.quantity, item.weight, rate, newUnit)
-      };
-    }));
+  const handleAllCategoriesClick = () => {
+    setSelectedItem({
+      id: 3,
+      name: "ALL CATEGORIES",
+      price: 110,
+      quantity: 1,
+      type: "WASH AND STEAM (5 CLOTHES APPROX)",
+      subType: "Wash and Steam (5 clothes approx)/WASH & IRONING/All",
+      isShirtBan: true,
+      minPrice: 110.0
+    });
   };
 
-  const removeBasketItem = (id: string) => {
-    setBasket(prev => prev.filter(item => item.id !== id));
+  const handleCustomItemClick = (category: string) => {
+    setSelectedItem({
+      id: Date.now(),
+      name: "Custom Item",
+      price: 0,
+      quantity: 1,
+      type: category,
+      subType: "Custom Item",
+      isCustom: true
+    });
+    setActiveTab('Price');
   };
 
-  const updateBasketWeight = (id: string, weightVal: string) => {
-    setBasket(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const parsed = parseFloat(weightVal) || 0;
-      return {
-        ...item,
-        weight: weightVal,
-        amount: calculateAmount(item.quantity, parsed, item.rate, item.unit)
-      };
-    }));
+  const handleFootwareClick = (name: string, price: number) => {
+    setSelectedItem({
+      id: Date.now(),
+      name: name.toUpperCase(),
+      price: price,
+      quantity: 1,
+      type: "FOOTWARE",
+      subType: `Footware/Footware/${name}`,
+      imageText: name.split(' ').map(w => w[0]).join('')
+    });
+    setActiveTab('Discount');
   };
 
-  const updateBasketRate = (id: string, rate: number) => {
-    setBasket(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const newRate = Math.max(0, rate);
-      return {
-        ...item,
-        rate: newRate,
-        amount: calculateAmount(item.quantity, item.weight, newRate, item.unit)
-      };
-    }));
-  };
+  let calcAmt = 0;
+  if (selectedItem && !selectedItem.isCustom) {
+     calcAmt += selectedItem.price * selectedItem.quantity;
+  }
+  calcAmt += productsList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+  
+  const amountDue = calcAmt.toFixed(2);
 
-  // Add a quick Custom Item
-  const handleAddCustomItem = () => {
-    // open inline custom item panel instead of browser prompts
-    setCustomName(''); setCustomRate(''); setCustomUnit('pc'); setCustomQty(1); setCustomWeight(1); setCustomNote('');
-    setShowCustomPanel(true);
-  };
-
-  const confirmAddDraft = (internalId: string) => {
-    const draft = draftItems.find(d => d.internalId === internalId);
-    if (!draft) return;
-    const currentService = services.find(s => s.id === (draft.product as any).serviceId || selectedService);
-    const serviceLabel = currentService?.label || 'Wash & Fold';
-    const rate = draft.product.price ?? 0;
-    const unit = draft.unit;
-
-    setBasket(prev => {
-      const existingIdx = prev.findIndex(b => b.type === draft.product.name && b.serviceLabel === serviceLabel && b.unit === unit && b.note === draft.note);
-      if (existingIdx >= 0) {
-        return prev.map((b, idx) => {
-          if (idx !== existingIdx) return b;
-          const newQty = b.quantity + draft.quantity;
-          return {
-            ...b,
-            quantity: newQty,
-            weight: draft.weight,
-            rate,
-            note: draft.note,
-            image: (draft.product as any).image || null,
-            amount: calculateAmount(newQty, draft.weight, rate, unit)
-          };
+  const handleConfirmOrder = () => {
+    const orderItems = [];
+    if (selectedItem && !selectedItem.isCustom) {
+        orderItems.push({
+            id: Date.now().toString(),
+            type: selectedItem.subType || selectedItem.name || 'Custom',
+            quantity: selectedItem.quantity,
+            weight: 1, // default
+            rate: selectedItem.price,
+            amount: selectedItem.price * selectedItem.quantity
         });
-      } else {
-        return [...prev, {
-          id: uid(),
-          type: draft.product.name,
-          quantity: draft.quantity,
-          weight: draft.weight,
-          rate,
-          amount: calculateAmount(draft.quantity, draft.weight, rate, unit),
-          unit,
-          serviceLabel,
-          note: draft.note,
-          image: (draft.product as any).image || null
-        }];
-      }
-    });
-
-    setDraftItems(prev => prev.filter(d => d.internalId !== internalId));
-  };
-
-  const updateDraft = (internalId: string, updates: Partial<DraftItem>) => {
-    setDraftItems(prev => prev.map(d => d.internalId === internalId ? { ...d, ...updates } : d));
-  };
-
-  const openEditModalForItem = (itemId: string) => {
-    const found = basket.find(b => b.id === itemId);
-    if (!found) return;
-    // find matching service item to get price/image
-    const matched = serviceItems.find(si => si.name.toLowerCase() === found.type.toLowerCase());
-    setDraftItems(prev => [...prev, {
-      internalId: uid(),
-      product: matched || ({ id: 'custom', name: found.type, price: found.rate, unit: found.unit } as ServiceItem),
-      quantity: found.quantity,
-      weight: found.weight,
-      unit: found.unit,
-      note: found.note || ''
-    }]);
-    // remove the existing item so confirmAddDraft will re-add (or update)
-    setBasket(prev => prev.filter(b => b.id !== itemId));
-  };
-
-  // Customer Quick Add
-  const handleQuickAddCustomer = () => {
-    if (!newCusName || !newCusMobile) return alert('Name and Mobile are required.');
-    const newCus = addCustomer({
-      name: newCusName,
-      mobile: newCusMobile,
-      email: `${newCusName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-    });
-    setSelectedCus({
-      id: newCus.id,
-      name: newCus.name,
-      mobile: newCus.mobile,
-      email: newCus.email,
-    });
-    setNewCusName('');
-    setNewCusMobile('');
-    setShowAddCusModal(false);
-  };
-
-  const totalItemsCount = basket.reduce((s, i) => s + i.quantity, 0);
-  const totalWeight = basket.reduce((s, i) => s + ((i.unit === 'kg' || i.unit === 'both') ? (parseFloat(i.weight.toString()) || 0) : 0), 0);
-  const totalAmount = basket.reduce((s, i) => s + i.amount, 0);
-  const finalAmount = Math.max(0, totalAmount - Number(discount));
-
-  const handleSave = async () => {
-    if (!selectedCus) {
-      setSubmissionError('Select a customer before placing the order.');
-      return;
     }
-    if (basket.length === 0) {
-      setSubmissionError('Add at least one item to the basket before placing the order.');
-      return;
-    }
-    setSubmissionError('');
-    setSaving(true);
-
-    const orderItems: LaundryItem[] = basket.map(item => ({
-      id: item.id,
-      type: `${item.type} (${item.serviceLabel}) - Charged per ${item.unit.toUpperCase()}`,
-      quantity: item.quantity,
-      weight: parseFloat(item.weight.toString()) || 0,
-      rate: item.rate,
-      amount: item.amount
-    }));
-
-    const order = addOrder({
-      customerId: selectedCus.id,
-      customerName: selectedCus.name,
-      customerMobile: selectedCus.mobile,
-      customerEmail: selectedCus.email ?? '',
-      items: orderItems,
-      totalWeight,
-      totalAmount,
-      discount: Number(discount),
-      finalAmount,
-      paymentStatus: payStatus,
-      paymentMethod: payment,
-      orderStatus: 'Pending',
-      notes: notes + (isPriority ? ' [PRIORITY ORDER]' : ''),
-      deliveryDate: delivery || undefined,
-    });
-    setSavedOrder(order.id);
-    setSaving(false);
-  };
-
-  // Filter catalog items dynamically based on selectedService and category
-  const filteredCatalog = serviceItems.filter(item => {
-    const q = (productSearch || searchQuery).toLowerCase();
-    const matchesSearch = q ? item.name.toLowerCase().includes(q) : true;
-    const isEnabled = item.enabled;
-    // Apply main category / service filtering if selected
-    let categoryMatch = true;
-    if (selectedMainCategory) {
-      const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
-      if (def) {
-        if (def.kind === 'service') {
-          categoryMatch = (def as any).services?.includes(item.serviceId) ?? true;
-        } else if (def.kind === 'category') {
-          categoryMatch = item.category === def.key;
+    
+    productsList.forEach(p => {
+        if ((p as any).price && parseFloat((p as any).price) > 0) {
+            const productName = p.name || p.search || 'Item';
+            const categoryPrefix = selectedItem && selectedItem.type ? `${selectedItem.type} - ` : '';
+            orderItems.push({
+                id: p.id.toString(),
+                type: `${categoryPrefix}${productName}`,
+                quantity: p.quantity,
+                weight: 1,
+                rate: parseFloat((p as any).price),
+                amount: parseFloat((p as any).price) * p.quantity
+            });
         }
-      }
+    });
+
+    const finalAmt = orderItems.reduce((acc, item) => acc + item.amount, 0);
+    if (finalAmt <= 0 && orderItems.length === 0) {
+        alert("Please add at least one item with a valid price.");
+        return;
     }
 
-    // Apply subcategory filter if selected (simple contains match)
-    let subMatch = true;
-    if (selectedSubCategory) {
-      const sub = selectedSubCategory.toLowerCase();
-      subMatch = item.name.toLowerCase().includes(sub) || (item.category || '').toLowerCase().includes(sub);
-    }
+    const customerId = selectedCustomerForOrder?.id || 'walk-in';
+    const customerName = selectedCustomerForOrder?.name || 'Walk-in';
+    const customerMobile = selectedCustomerForOrder?.mobile || 'N/A';
+    const customerEmail = selectedCustomerForOrder?.email || '';
 
-    return matchesSearch && isEnabled && categoryMatch && subMatch;
-  });
+    addOrder({
+      customerId,
+      customerName,
+      customerMobile,
+      customerEmail,
+      items: orderItems,
+      totalWeight: orderItems.length, // Placeholder
+      totalAmount: finalAmt,
+      discount: 0,
+      finalAmount: finalAmt,
+      paymentStatus: 'Unpaid',
+      paymentMethod: 'Cash',
+      orderStatus: 'Pending',
+      notes: itemNoteText || ''
+    });
+    
+    router.push('/orders');
+  };
 
-  // Deduplicated catalog (used when searching) - keep one representative per product name
-  const dedupedCatalog = (() => {
-    const seen = new Set<string>();
-    const out: ServiceItem[] = [];
-    for (const it of filteredCatalog) {
-      const key = it.name.trim().toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        out.push(it);
-      }
-    }
-    return out;
-  })();
+  if (!mounted) return null;
 
-  if (!mounted || !isAuthenticated) return null;
-
-  if (savedOrder) {
-    return (
-      <div className="app-layout">
-        <Sidebar />
-        <div className="main-content">
-          <TopBar title="Order Created!" />
-          <div className="page-body fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="card" style={{ textAlign: 'center', maxWidth: 480, margin: '40px auto', padding: 40 }}>
-              <div style={{ width: 72, height: 72, background: 'var(--success-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                <Check size={32} color="var(--success)" />
-              </div>
-              <h2 style={{ fontSize: 22, fontWeight: 850, marginBottom: 8, letterSpacing: '-0.02em' }}>Order Saved Successfully</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: 28, fontSize: 14 }}>The order has been created and logged in the database.</p>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button className="btn btn-primary" onClick={() => router.push(`/orders/${savedOrder}/tag`)}><Tag size={15} />Print Tag</button>
-                <button className="btn btn-glass" onClick={() => router.push(`/orders/${savedOrder}/invoice`)}><FileText size={15} />View Invoice</button>
-                <button className="btn btn-glass" onClick={() => { setSavedOrder(null); setSelectedCus(null); setBasket([]); }}>
-                  <Plus size={15} />New Order
-                </button>
-              </div>
+  if (orderStep === 'search') {
+    if (!customerSearchQuery && !selectedCustomerForOrder) {
+      return (
+        <div className={styles.wizardContainer}>
+          <div className={styles.initialSearchScreen}>
+            <div className={styles.initialSearchTitle}>Search Customer for <span>New Order</span></div>
+            <div className={styles.bigSearchInputWrapper}>
+              <input 
+                type="text" 
+                className={styles.bigSearchInput} 
+                placeholder="Search Customers by Name, Phone" 
+                value={customerSearchQuery}
+                onChange={e => setCustomerSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {customerSearchQuery && (
+                <div className={styles.bigSearchClear} onClick={() => setCustomerSearchQuery('')}><X size={20} /></div>
+              )}
             </div>
           </div>
         </div>
+      );
+    }
+
+    return (
+      <div className={styles.wizardContainer}>
+        <div className={styles.splitScreen}>
+          {/* Left Sidebar */}
+          <div className={styles.splitLeft}>
+            <div className={styles.leftTopBar}>
+               <Search size={16} color="#9ca3af" style={{position: 'absolute', marginLeft: 12}} />
+               <input 
+                 type="text" 
+                 className={styles.leftSearchInput} 
+                 placeholder="Search" 
+                 value={customerSearchQuery}
+                 onChange={e => setCustomerSearchQuery(e.target.value)}
+                 style={{paddingLeft: 36}}
+                 autoFocus
+               />
+               {customerSearchQuery && (
+                 <X size={16} color="#9ca3af" style={{position: 'absolute', right: 24, cursor: 'pointer'}} onClick={() => setCustomerSearchQuery('')} />
+               )}
+            </div>
+            
+            <div className={styles.customerListArea}>
+              {displayedCustomers.length === 0 ? (
+                <div style={{color: '#9ca3af', textAlign: 'center', marginTop: 24, fontSize: 14}}>No customers found.</div>
+              ) : (
+                displayedCustomers.map(c => (
+                  <div 
+                    key={c.id} 
+                    className={`${styles.customerListItem} ${selectedCustomerForOrder?.id === c.id ? styles.customerListItemActive : ''}`}
+                    onClick={() => setSelectedCustomerForOrder(c)}
+                  >
+                     <div className={styles.cliHeader}>
+                        <div className={styles.cliAvatar}>{c.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                           <div className={styles.cliName}>{c.name}</div>
+                           <div className={styles.cliSub}>{c.mobile}</div>
+                        </div>
+                     </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className={styles.addCustomerPanel}>
+               <button className={styles.btnAddCustomer} onClick={() => setShowAddCustomer(true)}>
+                  <UserPlus size={18} /> Add Customer
+               </button>
+            </div>
+          </div>
+          
+          {/* Right Panel */}
+          <div className={styles.splitRight}>
+             {selectedCustomerForOrder ? (
+               <>
+                 <div className={styles.infoPanel}>
+                    <div className={styles.infoTitle}>
+                       Customer Info
+                       <button className={styles.btnViewInfo}>View Info</button>
+                    </div>
+                    
+                    <div className={styles.infoGrid}>
+                       <div>
+                         <div className={styles.infoLabel}>Name:</div>
+                         <div className={styles.infoValue}>{selectedCustomerForOrder.name}</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Email:</div>
+                         <div className={styles.infoValue}>{selectedCustomerForOrder.email || '-'}</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Customer Type:</div>
+                         <div className={styles.infoValue}>RETAIL</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Total Revenue:</div>
+                         <div className={styles.infoValueBlue}>₹ 0.00</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Phone No.:</div>
+                         <div className={styles.infoValue}>+91 {selectedCustomerForOrder.mobile}</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Date of Joining:</div>
+                         <div className={styles.infoValue}>{new Date(selectedCustomerForOrder.createdAt).toLocaleDateString('en-GB')}</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Specific Preference:</div>
+                         <div className={styles.infoValue}>-</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Total Due Amount:</div>
+                         <div className={styles.infoValueBlue}>₹ 0</div>
+                       </div>
+                       <div>
+                         <div className={styles.infoLabel}>Address:</div>
+                         <div className={styles.infoValue}>-</div>
+                       </div>
+                    </div>
+                    
+                    <div className={styles.subsSection}>
+                       <div className={styles.subsHeader}>
+                          <div className={styles.subsTitle}>Subscriptions</div>
+                          <button className={styles.btnAssignSub}>Assign Subscription</button>
+                       </div>
+                       <div className={styles.noSubText}>No subscription assigned</div>
+                    </div>
+                 </div>
+                 
+                 <div className={styles.bottomActionRow}>
+                    <button className={styles.btnCancel} style={{borderRadius: 20}} onClick={() => { setCustomerSearchQuery(''); setSelectedCustomerForOrder(null); }}>Cancel</button>
+                    <button className={styles.btnCont} onClick={() => setOrderStep('create')}>Continue</button>
+                 </div>
+               </>
+             ) : (
+               <div style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 16}}>
+                  Select a customer to view details
+               </div>
+             )}
+          </div>
+        </div>
+
+        {/* Quick Add Modal */}
+        {showAddCustomer && (
+          <div style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{background: 'white', borderRadius: 8, width: 400, padding: 24, boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
+                <h2 style={{margin: 0, fontSize: 18}}>Add Customer</h2>
+                <button onClick={() => setShowAddCustomer(false)} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={20}/></button>
+              </div>
+              <form onSubmit={handleQuickAdd} style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                  <label style={{fontSize: 13, fontWeight: 500}}>Full Name *</label>
+                  <input style={{padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6}} value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} required />
+                </div>
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                  <label style={{fontSize: 13, fontWeight: 500}}>Mobile Number *</label>
+                  <input style={{padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6}} value={addForm.mobile} onChange={e => setAddForm(f => ({ ...f, mobile: e.target.value }))} maxLength={10} required />
+                </div>
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                  <label style={{fontSize: 13, fontWeight: 500}}>Email (optional)</label>
+                  <input type="email" style={{padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6}} value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                {addErr && <p style={{color: '#ef4444', fontSize: 13, margin: 0}}>{addErr}</p>}
+                <div style={{display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8}}>
+                  <button type="button" onClick={() => setShowAddCustomer(false)} style={{padding: '8px 16px', background: 'transparent', border: '1px solid #d1d5db', borderRadius: 6, cursor: 'pointer'}}>Cancel</button>
+                  <button type="submit" style={{padding: '8px 16px', background: '#00b4d8', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600}}>Add Customer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar />
-      <div className="main-content">
-        <TopBar title="New Order" subtitle="Interactive POS Grid Order System" />
-        
-        <div className="page-body fade-in" style={{ padding: '16px 24px' }}>
-          <div className="pos-layout">
-            
-            {/* LEFT CONTAINER: Visual Catalog Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
-              {/* POS Top Bar Controls */}
-              <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '16px 20px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input
-                    className="input"
-                    style={{ paddingLeft: 42, background: 'var(--bg-secondary)' }}
-                    placeholder="Search products..."
-                    value={productSearch}
-                    onChange={e => setProductSearch(e.target.value)}
-                  />
-                </div>
-                  {/* Category selector row */}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-                    {CATEGORY_DEFS.map((c, idx) => {
-                      const gradients = [
-                        'linear-gradient(135deg, #3b82f6, #2563eb)',
-                        'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-                        'linear-gradient(135deg, #ec4899, #be185d)',
-                        'linear-gradient(135deg, #10b981, #059669)',
-                        'linear-gradient(135deg, #f59e0b, #d97706)'
-                      ];
-                      const activeBg = gradients[idx % gradients.length];
-                      
-                      return (
-                        <button
-                          key={c.id}
-                          onClick={() => { setSelectedMainCategory(prev => prev === c.id ? null : c.id); setSelectedSubCategory(null); }}
-                          style={{ 
-                            textTransform: 'uppercase', 
-                            fontSize: 14, 
-                            fontWeight: 850,
-                            padding: '14px 24px', 
-                            borderRadius: 12,
-                            background: selectedMainCategory === c.id ? activeBg : 'var(--bg-primary)',
-                            color: selectedMainCategory === c.id ? '#ffffff' : 'var(--text-secondary)',
-                            border: selectedMainCategory === c.id ? 'none' : '2px solid var(--border-light)',
-                            boxShadow: selectedMainCategory === c.id ? '0 8px 16px rgba(0,0,0,0.15)' : 'var(--shadow-sm)',
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {c.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                {/* Due Date Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
-                  <Calendar size={16} style={{ color: 'var(--primary-brand)' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Due Date</span>
-                    <input 
-                      type="date" 
-                      value={delivery} 
-                      onChange={e => setDelivery(e.target.value)}
-                      style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 650, color: 'var(--text-primary)', outline: 'none', padding: 0 }} 
-                    />
-                  </div>
-                </div>
-
-                {/* Notes Shortcut (order-level) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button className="btn btn-glass" style={{ gap: 8, height: 42 }} onClick={() => { setShowOrderNoteInline(s => !s); setOrderNoteInput(notes); }}>
-                    <Settings2 size={16} /> Note
-                  </button>
-                  <button className="btn btn-glass" style={{ gap: 8, height: 42 }} title="Refresh prices from settings" onClick={() => { 
-                    console.clear();
-                    console.log('%c=== REFRESHING PRICES ===', 'color: blue; font-size: 16px; font-weight: bold');
-                    const allS = servicesDB.getAll(); 
-                    const allI = serviceItemsDB.getAll(); 
-                    const shirt = allI.find(i => i.name === 'Shirt');
-                    const tshirt = allI.find(i => i.name === 'T-Shirt');
-                    const jeans = allI.find(i => i.name === 'Jeans');
-                    const saree = allI.find(i => i.name === 'Saree');
-                    
-                    console.log('%cLoaded items:', 'color: green; font-weight: bold');
-                    console.log('Shirt:', shirt);
-                    console.log('T-Shirt:', tshirt);
-                    console.log('Jeans:', jeans);
-                    console.log('Saree:', saree);
-                    
-                    setServices(allS); 
-                    setServiceItems(allI);
-                    alert('✓ Prices refreshed! Check console (F12) for details.');
-                  }}>
-                    <Sparkles size={16} /> Refresh
-                  </button>
-                </div>
-
-                {showOrderNoteInline && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input className="input" placeholder="Order note / preferences" value={orderNoteInput} onChange={e => setOrderNoteInput(e.target.value)} style={{ minWidth: 280 }} />
-                    <button className="btn btn-glass" onClick={() => { setNotes(orderNoteInput); setShowOrderNoteInline(false); }}>Save</button>
-                  </div>
-                )}
-
-                {/* Priority Toggle */}
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={isPriority} 
-                      onChange={e => setIsPriority(e.target.checked)} 
-                      style={{ width: 38, height: 20, appearance: 'none', background: isPriority ? 'var(--primary-brand)' : 'var(--border-light)', borderRadius: 10, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
-                    />
-                    <div style={{ width: 14, height: 14, background: '#fff', borderRadius: '50%', position: 'absolute', top: 3, left: isPriority ? 21 : 3, transition: '0.2s' }} />
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: isPriority ? 'var(--primary-brand)' : 'var(--text-muted)' }}>Priority</span>
-                </label>
-              </div>
-
-              {/* single search bar retained in the top card; duplicate removed */}
-
-                {/* Product List selector (appears when Product List enabled) */}
-                {showProductList && (
-                  <div style={{ margin: '12px 0', display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <label className="input-label">Product Name :</label>
-                      <select className="input" value={productListSelectedId || ''} onChange={e => setProductListSelectedId(e.target.value || null)}>
-                        <option value="">Select product</option>
-                        {filteredCatalog.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <label style={{ fontSize: 12 }}>Quantity</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button className="btn btn-glass" onClick={() => setProductListQty(q => Math.max(1, q - 1))}>-</button>
-                        <div style={{ minWidth: 36, textAlign: 'center', fontWeight: 800 }}>{productListQty}</div>
-                        <button className="btn btn-glass" onClick={() => setProductListQty(q => q + 1)}>+</button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <button className="btn btn-primary" onClick={() => {
-                        if (!productListSelectedId) return alert('Select a product first');
-                        const p = serviceItems.find(si => si.id === productListSelectedId);
-                        if (!p) return alert('Product not found');
-                        // add to basket
-                        const unit: BasketItem['unit'] = productListUnit || (p.unit === 'kg' ? 'kg' : 'pc');
-                        const rate = p.price ?? 0;
-                        setBasket(prev => {
-                          const existingIdx = prev.findIndex(b => b.type === p.name && b.serviceLabel === (services.find(s => s.id === p.serviceId)?.label || '') && b.unit === unit && b.note === productListNote);
-                          if (existingIdx >= 0) {
-                            return prev.map((b, idx) => idx === existingIdx ? { ...b, quantity: b.quantity + productListQty, amount: calculateAmount(b.quantity + productListQty, productListWeight, b.rate, b.unit) } : b);
-                          }
-                          return [...prev, { id: uid(), type: p.name, quantity: productListQty, weight: productListWeight, rate, amount: calculateAmount(productListQty, productListWeight, rate, unit), unit, serviceLabel: services.find(s => s.id === p.serviceId)?.label || '', note: productListNote, image: (p as any).image || null }];
-                        });
-                      }}>Add</button>
-                    </div>
-                  </div>
-                )}
-                {/* Inline Custom Item Panel (replaces prompt flow) */}
-                {showCustomPanel && (
-                  <div className="card" style={{ margin: '12px 0', padding: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input className="input" placeholder="Item name" value={customName} onChange={e => setCustomName(e.target.value)} style={{ minWidth: 160 }} />
-                      <input className="input" placeholder="Price" value={customRate} onChange={e => setCustomRate(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 100 }} />
-                      <select className="input" value={customUnit} onChange={e => setCustomUnit(e.target.value as any)} style={{ width: 90 }}>
-                        <option value="pc">PC</option>
-                        <option value="kg">KG</option>
-                        <option value="both">BOTH</option>
-                      </select>
-                      <input className="input" placeholder="Note (optional)" value={customNote} onChange={e => setCustomNote(e.target.value)} style={{ minWidth: 180 }} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button className="btn btn-glass" onClick={() => setShowCustomPanel(false)}>Cancel</button>
-                      <button className="btn btn-primary" onClick={() => {
-                        if (!customName || customRate === '') return alert('Provide name and price');
-                        const activeS = services.find(s => s.id === selectedService);
-                        const serviceLabel = activeS?.label || 'Wash & Fold';
-                        const unit = customUnit || (activeS?.defaultUnit || 'pc');
-                        const rate = Number(customRate) || 0;
-                        setBasket(prev => [...prev, {
-                          id: uid(), type: customName, quantity: customQty, weight: customWeight, rate, amount: calculateAmount(customQty, customWeight, rate, unit), unit, serviceLabel, note: customNote, image: customImage || null
-                        }]);
-                        // reset
-                        setShowCustomPanel(false);
-                        setCustomName(''); setCustomRate(''); setCustomNote(''); setCustomImage(null); setCustomQty(1); setCustomWeight(1);
-                      }}>Add</button>
-                    </div>
-                  </div>
-                )}
-                {draftItems.map(draft => (
-                  <div key={draft.internalId} className="card fade-in" style={{ margin: '12px 0', padding: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
-                    {draft.product.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={draft.product.image} alt={draft.product.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
-                    ) : (
-                      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>{(draft.product.icon as any) || '👕'}</div>
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{draft.product.name}</div>
-                      {draft.product.description && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{draft.product.description}</div>}
-
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button className="btn btn-glass" onClick={() => updateDraft(draft.internalId, { quantity: Math.max(1, draft.quantity - 1) })}>-</button>
-                          <div style={{ minWidth: 48, textAlign: 'center', fontWeight: 800, fontSize: 18 }}>{draft.quantity}</div>
-                          <button className="btn btn-glass" onClick={() => updateDraft(draft.internalId, { quantity: draft.quantity + 1 })}>+</button>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <input type="number" step="0.05" min="0" value={draft.weight} onChange={e => updateDraft(draft.internalId, { weight: e.target.value })} style={{ width: 80, padding: '8px 10px' }} />
-                          <select value={draft.unit} onChange={e => updateDraft(draft.internalId, { unit: e.target.value as any })} style={{ padding: '8px 10px' }}>
-                            <option value="pc">PC</option>
-                            <option value="kg">KG</option>
-                            <option value="both">BOTH</option>
-                          </select>
-                        </div>
-
-                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Price</div>
-                          <div style={{ fontWeight: 900, color: 'var(--primary-brand)', fontSize: 18 }}>₹{(draft.product.price ?? 0).toFixed(0)}</div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 8 }}>
-                        <input className="input" placeholder="Item note (optional)" value={draft.note} onChange={e => updateDraft(draft.internalId, { note: e.target.value })} />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <button className="btn btn-primary" onClick={() => confirmAddDraft(draft.internalId)}>Add to Order</button>
-                      <button className="btn btn-glass" onClick={() => setDraftItems(prev => prev.filter(d => d.internalId !== draft.internalId))}>Close</button>
-                    </div>
-                  </div>
-                ))}
-
-              {/* Interactive Items Grid */}
-              {(productSearch.trim() || selectedMainCategory) ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 800, margin: '6px 0 8px' }}>{productSearch.trim() || (CATEGORY_DEFS.find(d => d.id === selectedMainCategory)?.label || '')}</h3>
-                    {selectedMainCategory && (
-                      <div style={{ background: 'rgba(18,115,255,0.08)', border: '1px solid rgba(18,115,255,0.12)', color: 'var(--primary-brand)', padding: '8px 12px', borderRadius: 10, fontWeight: 800, fontSize: 13 }}>
-                        {CATEGORY_DEFS.find(d => d.id === selectedMainCategory)?.label} ({filteredCatalog.length} clothes approx)
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Subcategory chips */}
-                  {selectedMainCategory && (
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      {(() => {
-                        const def = CATEGORY_DEFS.find(d => d.id === selectedMainCategory);
-                        if (!def) return null;
-                        return [
-                          <button key="mixed" className={'btn btn-primary'} style={{ padding: '6px 8px', fontSize: 12 }}>Mixed any ({filteredCatalog.length} clothes approx)</button>,
-                          ...def.subs.map(s => (
-                            <button key={s} className={selectedSubCategory === s ? 'btn btn-primary' : 'btn btn-glass'} style={{ padding: '6px 8px', fontSize: 12 }} onClick={() => setSelectedSubCategory(prev => prev === s ? null : s)}>{s}</button>
-                          ))
-                        ];
-                      })()}
-                    </div>
-                  )}
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
-                    {/* Custom Item card first */}
-                    <div
-                      onClick={handleAddCustomItem}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px dashed var(--border-light)',
-                        borderRadius: 12,
-                        padding: '14px 10px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-sm)'
-                      }}
-                    >
-                      <div style={{ width: 44, height: 44, borderRadius: 8, background: 'linear-gradient(135deg,#f3f6ff,#eef7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>+</div>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)' }}>Custom Item</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>₹0.00</span>
-                    </div>
-                    {dedupedCatalog.map(item => {
-                      const currentService = services.find(s => s.id === item.serviceId);
-                      const unit = item.unit || 'pc';
-                      const rate = item.price ?? 0;
-
-                      // Check if in basket
-                      const inBasket = basket.find(b => b.type === item.name && b.serviceLabel === currentService?.label && b.unit === unit);
-                      const isHovered = hoveredCard === item.name;
-                      
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleAddToBasket(item)}
-                          onMouseEnter={() => setHoveredCard(item.name)}
-                          onMouseLeave={() => setHoveredCard(null)}
-                          style={{
-                            background: 'var(--bg-primary)',
-                            border: inBasket ? '2px solid var(--primary-brand)' : '1px solid var(--border-light)',
-                            borderRadius: 12,
-                            padding: '14px 10px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textAlign: 'center',
-                            position: 'relative',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            boxShadow: inBasket ? '0 4px 12px rgba(0, 102, 204, 0.1)' : 'var(--shadow-sm)'
-                          }}
-                          className="catalog-item-card"
-                        >
-                          {inBasket && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeBasketItem(inBasket.id);
-                              }}
-                              title="Remove from basket"
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                width: 22,
-                                height: 22,
-                                borderRadius: '50%',
-                                background: isHovered ? 'var(--danger)' : 'var(--primary-brand)',
-                                color: '#ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: isHovered ? 8 : 10,
-                                fontWeight: 800,
-                                border: '2px solid #ffffff',
-                                cursor: 'pointer',
-                                boxShadow: 'var(--shadow-sm)',
-                                zIndex: 10,
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {isHovered ? '✕' : inBasket.quantity}
-                            </button>
-                          )}
-                          
-                          {/* Product Image / Icon */}
-                          {item.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.image} alt={item.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
-                          ) : (
-                            <span style={{ fontSize: 26, marginBottom: 8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}>{item.icon || '👕'}</span>
-                          )}
-                          
-                          {/* Name */}
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                            {item.name}
-                          </span>
-                          
-                          {/* Price & Unit */}
-                          <span style={{ fontSize: 11, fontWeight: 750, color: 'var(--primary-brand)' }}>
-                            ₹{rate.toFixed(0)} <span style={{ fontSize: 9.5, opacity: 0.7, fontWeight: 550 }}>/{unit}</span>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {/* RIGHT SIDEBAR: Basket & Summary Details */}
-            <div className={`pos-basket-container ${isBasketOpen ? 'open' : ''}`}>
-              <div className="mobile-basket-header">
-                <h3 style={{ fontSize: 16, fontWeight: 850, margin: 0 }}>Order Basket</h3>
-                <button className="btn btn-glass btn-sm" onClick={() => setIsBasketOpen(false)}>Close</button>
-              </div>
-              
-              {/* CUSTOMER SEARCH & SELECTOR */}
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <label className="input-label" style={{ margin: 0 }}>Select Customer</label>
-                  <button 
-                    className="btn btn-glass btn-sm" 
-                    style={{ fontSize: 11, padding: '4px 10px', height: 26, gap: 4 }}
-                    onClick={() => setShowAddCusModal(true)}
-                  >
-                    <UserPlus size={12} /> Quick Add
-                  </button>
-                </div>
-                
-                {selectedCus ? (
-                  <div style={{ background: 'var(--primary-brand-light)', padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(0, 102, 204, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{selectedCus.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{selectedCus.mobile}</div>
-                    </div>
-                    <button 
-                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 4 }}
-                      onClick={() => setSelectedCus(null)}
-                      title="Clear customer"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ position: 'relative' }}>
-                    <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      className="input"
-                      style={{ paddingLeft: 34, fontSize: 12.5 }}
-                      placeholder="Type name or mobile..."
-                      value={cusQuery}
-                      onChange={e => setCusQuery(e.target.value)}
-                    />
-                    
-                    {cusQuery.trim().length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-primary)', border: '1px solid var(--border-light)', borderRadius: 8, marginTop: 4, boxShadow: 'var(--shadow-lg)', zIndex: 100, maxHeight: 200, overflowY: 'auto' }}>
-                        {cusResults.length === 0 ? (
-                          <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
-                            No customer found
-                          </div>
-                        ) : (
-                          cusResults.map(c => (
-                            <div
-                              key={c.id}
-                              onClick={() => {
-                               setSelectedCus({ id: c.id, name: c.name, mobile: c.mobile, email: c.email });
-                               setCusQuery('');
-                               setSubmissionError('');
-                              }}
-                              style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-                              className="btn-hover-glow"
-                            >
-                              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{c.name}</span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.mobile}</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* POS BASKET LIST */}
-              <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Layers size={16} style={{ color: 'var(--primary-brand)' }} />
-                    <span style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--text-primary)' }}>Selected Items ({totalItemsCount})</span>
-                  </div>
-                  {basket.length > 0 && (
-                    <button style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }} onClick={() => setBasket([])}>
-                      Clear All
-                    </button>
-                  )}
-                </div>
-
-                <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
-                  {basket.length === 0 ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13.5 }}>
-                      <div style={{ fontSize: 32, marginBottom: 10 }}>🧺</div>
-                      Basket is empty. Select items from the catalog.
-                    </div>
-                  ) : (
-                    basket.map(item => (
-                      <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ fontSize: 12.5, fontWeight: 750, color: 'var(--text-primary)' }}>{item.type}</span>
-                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{item.serviceLabel}</div>
-                          </div>
-                          <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }} onClick={() => removeBasketItem(item.id)}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, gap: 8 }}>
-                          {/* Qty Counter */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-primary)', padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-light)' }}>
-                            <button style={{ border: 'none', background: 'none', width: 14, height: 18, fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => updateBasketQty(item.id, -1)}>-</button>
-                            <span style={{ fontSize: 11.5, fontWeight: 800, minWidth: 14, textAlign: 'center', color: 'var(--text-primary)' }}>{item.quantity}</span>
-                            <button style={{ border: 'none', background: 'none', width: 14, height: 18, fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => updateBasketQty(item.id, 1)}>+</button>
-                            <span style={{ fontSize: 9.5, color: 'var(--text-muted)', marginLeft: 2 }}>{item.unit === 'pc' ? 'pc' : 'kg'}</span>
-                            <button style={{ border: 'none', background: 'none', marginLeft: 8, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => openEditModalForItem(item.id)}>Edit</button>
-                          </div>
-
-                          {/* Weight input */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-primary)', padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-light)' }}>
-                            <input 
-                              type="number" 
-                              step="0.05"
-                              min="0.1"
-                              style={{ width: 42, height: 18, fontSize: 11, textAlign: 'center', border: 'none', background: 'transparent', fontWeight: 700, color: 'var(--text-primary)', padding: 0 }}
-                              value={item.weight} 
-                              onChange={e => updateBasketWeight(item.id, e.target.value)} 
-                            />
-                            <span style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>kg</span>
-                          </div>
-
-                          {/* Billing Unit Segmented Selector */}
-                          <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-light)', background: 'var(--bg-primary)', height: 24 }}>
-                            <button
-                              onClick={() => { if (item.unit !== 'pc') setBasketUnit(item.id, 'pc'); }}
-                              style={{
-                                border: 'none',
-                                padding: '0 4px',
-                                fontSize: 8.5,
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                background: item.unit === 'pc' ? 'var(--primary-brand)' : 'transparent',
-                                color: item.unit === 'pc' ? '#fff' : 'var(--text-secondary)',
-                                transition: 'all 0.1s'
-                              }}
-                            >
-                              PC
-                            </button>
-                            <button
-                              onClick={() => { if (item.unit !== 'kg') setBasketUnit(item.id, 'kg'); }}
-                              style={{
-                                border: 'none',
-                                padding: '0 4px',
-                                fontSize: 8.5,
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                background: item.unit === 'kg' ? 'var(--primary-brand)' : 'transparent',
-                                color: item.unit === 'kg' ? '#fff' : 'var(--text-secondary)',
-                                transition: 'all 0.1s'
-                              }}
-                            >
-                              KG
-                            </button>
-                            <button
-                              onClick={() => { if (item.unit !== 'both') setBasketUnit(item.id, 'both'); }}
-                              style={{
-                                border: 'none',
-                                padding: '0 4px',
-                                fontSize: 8.5,
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                background: item.unit === 'both' ? 'var(--primary-brand)' : 'transparent',
-                                color: item.unit === 'both' ? '#fff' : 'var(--text-secondary)',
-                                transition: 'all 0.1s'
-                              }}
-                            >
-                              BOTH
-                            </button>
-                          </div>
-
-                          {/* Rate & Total amount */}
-                          <div style={{ textAlign: 'right', minWidth: 60 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
-                              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>₹</span>
-                              <input
-                                type="number"
-                                style={{ width: 34, height: 18, fontSize: 10.5, textAlign: 'right', border: 'none', borderBottom: '1px dashed var(--border-light)', background: 'transparent', padding: 0, fontWeight: 700, color: 'var(--text-primary)' }}
-                                value={item.rate}
-                                onChange={e => updateBasketRate(item.id, parseFloat(e.target.value) || 0)}
-                              />
-                            </div>
-                            <div style={{ fontSize: 11.5, fontWeight: 850, color: 'var(--text-primary)', marginTop: 2 }}>₹{item.amount.toFixed(0)}</div>
-                          </div>
-                        </div>
-
-                        {/* optional note */}
-                        {item.note && (
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: -4 }}>{item.note}</div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* BILLING SUMMARY CARD */}
-              <div className="card">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, borderBottom: '1px solid var(--border-light)', paddingBottom: 12, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Weight Total</span>
-                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{totalWeight.toFixed(2)} kg</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{totalAmount.toFixed(0)}</span>
-                  </div>
-                  
-                  {/* Discount Field */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Discount (₹)</span>
-                    <input 
-                      type="number" 
-                      placeholder="0"
-                      className="input" 
-                      style={{ width: 80, height: 28, fontSize: 12, textAlign: 'right', padding: '2px 8px' }}
-                      value={discount}
-                      onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))} 
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>Total Payable</span>
-                  <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--primary-brand)' }}>₹{finalAmount.toFixed(0)}</span>
-                </div>
-
-                {/* Payment Status & Type Selection */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
-                  <div className="input-group">
-                    <label className="input-label" style={{ fontSize: 11, marginBottom: 6 }}>Payment Method</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['Cash', 'UPI', 'Card'] as PaymentMethod[]).map(m => (
-                        <button
-                          key={m}
-                          type="button"
-                          className={`btn ${payment === m ? 'btn-primary' : 'btn-glass'}`}
-                          style={{ flex: 1, padding: '6px 0', fontSize: 11.5, height: 32, justifyContent: 'center' }}
-                          onClick={() => setPayment(m)}
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label" style={{ fontSize: 11, marginBottom: 6 }}>Payment Status</label>
-                    <select 
-                      className="input" 
-                      style={{ height: 34, padding: '4px 10px', fontSize: 12 }} 
-                      value={payStatus} 
-                      onChange={e => setPayStatus(e.target.value as any)}
-                    >
-                      <option value="Unpaid">❌ Unpaid</option>
-                      <option value="Partial">⚠️ Partial Payment</option>
-                      <option value="Paid">✅ Paid</option>
-                    </select>
-                  </div>
-                </div>
-
-                {notes && (
-                  <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'var(--text-muted)', marginBottom: 14, wordBreak: 'break-word' }}>
-                    <strong>Note:</strong> {notes}
-                  </div>
-                )}
-
-                {submissionError && (
-                  <p role="alert" style={{ margin: '0 0 10px', color: 'var(--danger)', fontSize: 12, fontWeight: 650 }}>
-                    {submissionError}
-                  </p>
-                )}
-                <button 
-                  className="btn btn-primary" 
-                  style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 13.5, fontWeight: 700 }} 
-                  onClick={handleSave} 
-                  disabled={saving}
-                >
-                  {saving ? 'Creating Order...' : '✓ Place Order'}
-                </button>
-              </div>
-            </div>
-
+    <div className={styles.container}>
+      <div className={styles.mainContent}>
+        {/* Left Sidebar */}
+        <div className={styles.leftSidebar}>
+          <div className={styles.customerBox}>
+            <div className={styles.customerName}>{selectedCustomerForOrder?.name || 'Walk-in'}</div>
+            <div className={styles.customerPhone}>{selectedCustomerForOrder?.mobile || ''}</div>
+          </div>
+          
+          <div className={styles.orderHeader}>
+            <h2>Create New Order</h2>
+            <button className={styles.btnHold}>Hold</button>
+          </div>
+          
+          <button className={styles.btnSubscription}>Add Subscription</button>
+          
+          <div className={styles.orderSummaryText}>Order Summary</div>
+          <div className={styles.summaryIcons}>
+             <div className={styles.summaryIconBox}>
+                <ShoppingBag size={18} /> <span>{selectedItem ? 1 : 0}</span>
+             </div>
+             <div className={styles.summaryIconBox}>
+                <Activity size={18} /> <span>0</span>
+             </div>
+             <div className={styles.summaryIconBox}>
+                <Shirt size={18} /> <span>{selectedItem ? (productsList.length > 0 ? productsList.reduce((acc, curr) => acc + curr.quantity, 0) * selectedItem.quantity : selectedItem.quantity) : 0}</span> 
+             </div>
+             <div className={styles.summaryIconBox}>
+                <Layers size={18} /> <span>0</span>
+             </div>
           </div>
 
-          {/* Mobile Sheet Overlay for Basket */}
-          <div className={`mobile-sheet-overlay ${isBasketOpen ? 'open' : ''}`} onClick={() => setIsBasketOpen(false)} style={{ zIndex: 1001 }} />
-
-          {/* Floating Mobile Checkout Bar */}
-          {basket.length > 0 && (
-            <div className="mobile-checkout-bar" onClick={() => setIsBasketOpen(true)} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 18 }}>🧺</span>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: '#ffffff' }}>{totalItemsCount} Items</div>
-                  <div style={{ fontSize: 11, opacity: 0.9 }}>Total: ₹{finalAmount.toFixed(0)}</div>
-                </div>
-              </div>
-              <button className="mobile-checkout-btn" onClick={(e) => { e.stopPropagation(); setIsBasketOpen(true); }}>
-                View Basket & Pay ➔
-              </button>
-            </div>
+          {selectedItem && (
+             <>
+               <div style={{fontSize: 13, color: '#111827', marginTop: 24, textTransform: 'uppercase'}}>{selectedItem.type}</div>
+               <div className={styles.cartItem} style={{marginTop: 12}}>
+                  <div className={styles.cartItemLeft}>
+                     <div className={styles.cartItemIcon}>
+                        {selectedItem.isShirtBan ? (
+                           <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: '50%', border: '1px solid #111827'}}>
+                              <Shirt size={14} color="#111827" strokeWidth={1} />
+                              <Ban size={18} color="#111827" strokeWidth={1.5} style={{position: 'absolute'}} />
+                           </div>
+                        ) : (
+                           <div style={{fontSize: 7, color: '#00b4d8', textAlign: 'center', lineHeight: 1.1, padding: 2, whiteSpace: 'pre-line'}}>{selectedItem.imageText}</div>
+                        )}
+                     </div>
+                     <div className={styles.cartItemInfo}>
+                        <div className={styles.cartItemName}>{selectedItem.name}</div>
+                        <div className={styles.cartItemCalc}>{selectedItem.quantity.toFixed(1)} x ₹ {selectedItem.price.toFixed(1)}</div>
+                     </div>
+                  </div>
+                  <div className={styles.cartItemTotal}>₹ {(selectedItem.quantity * selectedItem.price).toFixed(2)}</div>
+               </div>
+             </>
           )}
+          
+          <div className={styles.discountCard} style={{ marginTop: selectedItem ? 24 : 16 }}>
+            <div className={styles.discountHeader} style={{ borderBottom: isDiscountExpanded ? '1px solid #e5e7eb' : 'none' }}>
+               <span className={styles.linkText} onClick={() => setIsDiscountExpanded(!isDiscountExpanded)} style={{cursor: 'pointer'}}>Discount / Promo / Charge</span>
+               <button className={styles.chevronBtn} onClick={() => setIsDiscountExpanded(!isDiscountExpanded)}>
+                  {isDiscountExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+               </button>
+            </div>
+            {isDiscountExpanded && (
+               <div className={styles.totals}>
+                  <div className={styles.totalRow}>
+                     <span>Sub-total:</span>
+                     <span className={styles.priceBlue}>₹ {amountDue}</span>
+                  </div>
+                  <div className={styles.totalRow}>
+                     <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                       Round Off <input type="checkbox" checked readOnly style={{accentColor: '#d1d5db', width: 16, height: 16}} />
+                     </span>
+                     <span className={styles.totalRow} style={{fontWeight: 600, color: '#111827'}}>₹ 0.0</span>
+                  </div>
+               </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Right Area */}
+        <div className={styles.rightArea}>
+           <div className={styles.topBar}>
+              <div className={styles.searchBox}><Search size={20} /></div>
+              <div className={styles.datePicker}>
+                 <div className={styles.dateLabel}>Due Date</div>
+                 <div className={styles.dateValue}>Thu 20/Aug 11:30 AM to 01:30 PM <Calendar size={18}/></div>
+              </div>
+              <button className={styles.btnPrefs}>Preferences & Add Note</button>
+              <div className={styles.priorityToggle}>
+                 <ToggleLeft size={36} color="#d1d5db" strokeWidth={1.5} />
+                 <span style={{marginTop: -4}}>Priority Order</span>
+              </div>
+           </div>
+           
+           {!selectedItem ? (
+             <>
+               <div className={styles.categories}>
+                  <button className={`${styles.catBtn} ${activeCategory === 'WASH AND FOLD' ? styles.catActive : styles.catInactive}`} onClick={() => handleCategoryChange('WASH AND FOLD')}>WASH AND FOLD (5<br/>clothes approx)</button>
+                  <button className={`${styles.catBtn} ${activeCategory === 'WASH AND STEAM' ? styles.catActive : styles.catInactive}`} onClick={() => handleCategoryChange('WASH AND STEAM')}>Wash and Steam (5<br/>clothes approx)</button>
+                  <button className={`${styles.catBtn} ${activeCategory === 'DRY CLEAN' ? styles.catActive : styles.catInactive}`} onClick={() => handleCategoryChange('DRY CLEAN')}>DRY CLEAN</button>
+                  <button className={`${styles.catBtn} ${activeCategory === 'FOOTWEAR' ? styles.catActive : styles.catInactive}`} onClick={() => handleCategoryChange('FOOTWEAR')}>Footware</button>
+                  <button className={`${styles.catBtn} ${activeCategory === 'STEAM IRON' ? styles.catActive : styles.catInactive}`} onClick={() => handleCategoryChange('STEAM IRON')}>STEAM IRON</button>
+               </div>
+               
+               <div className={styles.subCategories}>
+                  {activeCategory !== 'FOOTWEAR' && (
+                    <button className={`${styles.subCatBtn} ${activeSubCategory === 'Mixed any (5 clothes approx)' ? styles.catActive : styles.catInactive}`} onClick={() => setActiveSubCategory('Mixed any (5 clothes approx)')}>Mixed any (5 clothes approx)</button>
+                  )}
+                  {activeCategory === 'WASH AND STEAM' && (
+                    <button className={`${styles.subCatBtn} ${activeSubCategory === 'WASH & IRONING' ? styles.catActive : styles.catInactive}`} style={{marginLeft: 12}} onClick={() => setActiveSubCategory('WASH & IRONING')}>WASH & IRONING</button>
+                  )}
+                  {activeCategory === 'FOOTWEAR' && (
+                    <button className={`${styles.subCatBtn} ${activeSubCategory === 'Footware' ? styles.catActive : styles.catInactive}`} onClick={() => setActiveSubCategory('Footware')}>Footware</button>
+                  )}
+               </div>
+               
+               <div className={styles.itemsGrid}>
+                  {activeCategory === 'WASH AND FOLD' && (
+                     <>
+                        <div className={styles.itemCard} onClick={handleWashFoldClick} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Wash And Fold</div>
+                              <div className={styles.itemPrice}>₹ 80.00</div>
+                           </div>
+                           <div style={{ width: 40, height: 56, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, textAlign: 'center', color: '#9ca3af', borderRadius: 4 }}>IMG</div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('WASH AND FOLD')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+                  {activeCategory === 'DRY CLEAN' && (
+                     <>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('DRY CLEAN')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+                  {activeCategory === 'WASH AND STEAM' && activeSubCategory === 'Mixed any (5 clothes approx)' && (
+                     <>
+                        <div className={styles.itemCard} onClick={handleWashSteamClick} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Wash and Steam Iron</div>
+                              <div className={styles.itemPrice}>₹ 110.00</div>
+                           </div>
+                           <div style={{ width: 40, height: 56, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, textAlign: 'center', color: '#9ca3af', borderRadius: 4 }}>IMG</div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('WASH AND STEAM')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+                  {activeCategory === 'WASH AND STEAM' && activeSubCategory === 'WASH & IRONING' && (
+                     <>
+                        <div className={styles.itemCard} onClick={handleAllCategoriesClick} style={{cursor: 'pointer', position: 'relative'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>All categories</div>
+                              <div className={styles.itemPrice}>₹ 110.00</div>
+                              <div style={{color: '#ef4444', fontSize: 10, marginTop: 12}}>Min Price :- ₹ 110.0</div>
+                           </div>
+                           <div style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)' }}>
+                              <Shirt size={20} color="#9ca3af" strokeWidth={1} />
+                              <Ban size={28} color="#9ca3af" strokeWidth={1} style={{position: 'absolute'}} />
+                           </div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('WASH AND STEAM')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+                  {activeCategory === 'STEAM IRON' && (
+                     <>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('STEAM IRON')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+                  {activeCategory === 'FOOTWEAR' && (
+                     <>
+                        <div className={styles.itemCard} onClick={() => handleFootwareClick("Sports Shoes", 300)} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>Sports Shoes</div>
+                              <div className={styles.itemPrice}>₹ 300.00</div>
+                           </div>
+                           <div style={{ width: 40, height: 56, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, textAlign: 'center', color: '#9ca3af', borderRadius: 4 }}>IMG</div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleFootwareClick("Leather Shoe Ankle", 400)} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>Leather Shoe Ankle</div>
+                              <div className={styles.itemPrice}>₹ 400.00</div>
+                           </div>
+                           <div style={{ width: 40, height: 56, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, textAlign: 'center', color: '#9ca3af', borderRadius: 4 }}>IMG</div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleFootwareClick("Leather Shoe", 500)} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>Leather Shoe</div>
+                              <div className={styles.itemPrice}>₹ 500.00</div>
+                           </div>
+                           <div style={{ width: 40, height: 56, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, textAlign: 'center', color: '#9ca3af', borderRadius: 4 }}>IMG</div>
+                        </div>
+                        <div className={styles.itemCard} onClick={() => handleCustomItemClick('FOOTWEAR')} style={{cursor: 'pointer'}}>
+                           <div className={styles.itemInfo}>
+                              <div className={styles.itemName} style={{color: '#00b4d8'}}>Custom Item</div>
+                              <div className={styles.itemPrice}>₹ 0.00</div>
+                           </div>
+                        </div>
+                     </>
+                  )}
+               </div>
+             </>
+           ) : (
+             <>
+               {/* Detail View */}
+               {!selectedItem.isCustom && (
+                 <div className={styles.productDetailCard}>
+                 <div className={styles.productDetailLeft}>
+                    <div className={styles.productDetailImgBox} style={selectedItem.isShirtBan ? {background: 'transparent', border: '1px solid #d1d5db', borderRadius: '50%'} : {}}>
+                       {selectedItem.isShirtBan ? (
+                          <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%'}}>
+                             <Shirt size={28} color="#9ca3af" strokeWidth={1} />
+                             <Ban size={40} color="#9ca3af" strokeWidth={1.5} style={{position: 'absolute'}} />
+                          </div>
+                       ) : (
+                          <div style={{fontSize: 10, color: '#00b4d8', textAlign: 'center', fontWeight: 'bold', whiteSpace: 'pre-line'}}>{selectedItem.imageText}</div>
+                       )}
+                    </div>
+                    <div className={styles.productDetailInfo}>
+                       <div className={styles.productDetailTitle}>{selectedItem.subType}</div>
+                       <div className={styles.priceInputRow}>
+                          {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? 'Price per Item' : 'Price per kg'} <input type="text" value={selectedItem.price.toFixed(1)} readOnly />
+                       </div>
+                       {selectedItem.minPrice && (
+                          <div style={{color: '#ef4444', fontSize: 12, marginTop: 12}}>Minimum Item Price : ₹ {selectedItem.minPrice.toFixed(1)}</div>
+                       )}
+                    </div>
+                 </div>
+                 
+                 <div className={styles.productDetailControls}>
+                    <div className={styles.weightIcon}>
+                       <div style={{width: 16, height: 16, borderRadius: '50%', background: '#ef4444', margin: 'auto', marginTop: 4}}></div>
+                    </div>
+                    <div className={styles.qtySelector}>
+                       <button className={styles.qtyBtn} onClick={() => setSelectedItem({...selectedItem, quantity: Math.max(1, selectedItem.quantity - 1)})}><Minus size={18} strokeWidth={2.5}/></button>
+                       <input type="text" className={styles.qtyInput} value={selectedItem.quantity} readOnly />
+                       <button className={styles.qtyBtn} onClick={() => setSelectedItem({...selectedItem, quantity: selectedItem.quantity + 1})}><Plus size={18} strokeWidth={2.5}/></button>
+                    </div>
+                    <button className={styles.btnRack}>
+                       <Plus size={18} color="#00b4d8" strokeWidth={3} /> Rack / Conveyor
+                    </button>
+                 </div>
+               </div>
+               )}
+               
+               <div className={styles.actionTabs}>
+                  {selectedItem.isCustom && (
+                    <button className={`${styles.actionTab} ${activeTab === 'Price' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Price')}>Price</button>
+                  )}
+                  <button className={`${styles.actionTab} ${activeTab === 'Discount' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Discount')}>Discount</button>
+                  <button className={`${styles.actionTab} ${activeTab === 'Image' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Image')}>Image</button>
+                  <button className={`${styles.actionTab} ${activeTab === 'Item Note' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Item Note')}>Item Note</button>
+                  {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? (
+                    <button className={`${styles.actionTab} ${activeTab === 'Color' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Color')}>Color</button>
+                  ) : (
+                    <button className={`${styles.actionTab} ${activeTab === 'Product List' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Product List')}>Product List</button>
+                  )}
+               </div>
+               
+               {activeTab === 'Price' && selectedItem.isCustom && (
+                 <div className={styles.discountControls} style={{flexDirection: 'column', gap: '16px'}}>
+                    <div style={{fontSize: 16, fontWeight: 600, color: '#4b5563'}}>Set Specific Product Price</div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                      <div className={styles.discountBtn} style={{background: '#f3f4f6', color: '#111827', cursor: 'default'}}>₹</div>
+                      <input 
+                        type="number" 
+                        className={styles.discountInput} 
+                        style={{width: '200px', fontSize: '20px', fontWeight: 'bold'}}
+                        value={selectedItem.price || ''}
+                        onChange={(e) => setSelectedItem({...selectedItem, price: parseFloat(e.target.value) || 0})}
+                        placeholder="0.00"
+                        autoFocus
+                      />
+                    </div>
+                 </div>
+               )}
 
+               {activeTab === 'Discount' && (
+                 <div className={styles.discountControls}>
+                    <button className={styles.discountBtn}>₹</button>
+                    <input type="text" className={styles.discountInput} />
+                    <button className={styles.discountBtn}>%</button>
+                 </div>
+               )}
+               
+               {activeTab === 'Image' && (
+                 <div className={styles.imageTabContent}>
+                    <div className={styles.imageTabHeader}>
+                       <span>0/4 images selected</span>
+                       <span>Max size: 3 MB</span>
+                    </div>
+                    <div className={styles.imageDropzone}>
+                       <ImageIcon size={48} className={styles.imageDropzoneIcon} strokeWidth={1} />
+                       <div className={styles.imageDropzoneTitle}>No image selected</div>
+                       <div className={styles.imageDropzoneSubtitle}>Upload or capture an image of the item.</div>
+                    </div>
+                    <div className={styles.imageActionBtns}>
+                       <button className={styles.btnUpload}><Upload size={18} /> Upload Image</button>
+                       <button className={styles.btnCapture}><Camera size={18} /> Capture Image</button>
+                    </div>
+                 </div>
+               )}
+               
+               {activeTab === 'Item Note' && (
+                 <textarea 
+                    className={styles.itemNoteTextarea} 
+                    placeholder="Add a note for this item..." 
+                    value={itemNoteText}
+                    onChange={(e) => setItemNoteText(e.target.value)}
+                 />
+               )}
+               
+               {activeTab === 'Color' && (
+                 <div style={{padding: '32px', textAlign: 'center', color: '#6b7280', border: '1px dashed #d1d5db', borderRadius: '6px', marginTop: '24px'}}>
+                    Color selection options will be available here.
+                 </div>
+               )}
+               
+               {activeTab === 'Product List' && (
+                 <div className={styles.productListContainer}>
+                    {productsList.length > 0 && (
+                      <div className={styles.productListHeader}>
+                        <div className={styles.productNameHeader}>Product Name :</div>
+                        <div style={{width: '100px', textAlign: 'center'}}>Price (₹)</div>
+                        <div className={styles.quantityHeader}>Quantity</div>
+                      </div>
+                    )}
+                    
+                    {productsList.map(product => (
+                      <div key={product.id} className={styles.productListRow}>
+                        <div className={styles.productSearchContainer}>
+                          <input 
+                            type="text" 
+                            className={styles.productSearchInput} 
+                            placeholder="Search product..." 
+                            value={product.search}
+                            onChange={(e) => handleUpdateProductSearch(product.id, e.target.value)}
+                            onFocus={() => setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, showSuggestions: true } : p))}
+                            onBlur={() => setTimeout(() => setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, showSuggestions: false } : p)), 200)}
+                          />
+                          {product.showSuggestions && product.search && (
+                            <div className={styles.productSearchSuggestions}>
+                               {AVAILABLE_PRODUCTS.filter(name => name.toLowerCase().includes(product.search.toLowerCase()))
+                                 .sort((a, b) => {
+                                    const query = product.search.toLowerCase();
+                                    const aStarts = a.toLowerCase().startsWith(query);
+                                    const bStarts = b.toLowerCase().startsWith(query);
+                                    if (aStarts && !bStarts) return -1;
+                                    if (!aStarts && bStarts) return 1;
+                                    return a.localeCompare(b);
+                                 })
+                                 .map(name => (
+                                  <div key={name} className={styles.productSearchSuggestionItem} onMouseDown={(e) => { e.preventDefault(); handleSelectProduct(product.id, name); }}>
+                                     {name}
+                                  </div>
+                               ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div style={{width: '100px', display: 'flex', alignItems: 'center'}}>
+                           <input 
+                             type="number" 
+                             style={{width: '100%', border: '1px solid #d1d5db', borderRadius: '4px', padding: '8px 12px', fontSize: '14px', outline: 'none', textAlign: 'center'}}
+                             placeholder="0.00" 
+                             value={(product as any).price || ''}
+                             onChange={(e) => {
+                               const newPrice = e.target.value;
+                               const newList = productsList.map(p => p.id === product.id ? { ...p, price: newPrice } : p);
+                               setProductsList(newList as any);
+                               
+                               if (selectedItem?.isCustom) {
+                                 const hasAnyPrice = newList.some(p => (p as any).price);
+                                 if (hasAnyPrice) {
+                                   const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+                                   setSelectedItem({...selectedItem, price: total});
+                                 }
+                               }
+                             }}
+                           />
+                        </div>
+
+                        <div className={styles.productQtyControls}>
+                          <button className={styles.productQtyBtn} onClick={() => handleUpdateProductQty(product.id, -1)}><Minus size={18} /></button>
+                          <div className={styles.productQtyValue}>{product.quantity}</div>
+                          <button className={styles.productQtyBtn} onClick={() => handleUpdateProductQty(product.id, 1)}><Plus size={18} /></button>
+                        </div>
+                        
+                        <button className={styles.productDeleteBtn} onClick={() => handleRemoveProduct(product.id)}><Trash2 size={18} /></button>
+                      </div>
+                    ))}
+                    
+                    <button className={styles.btnAddProduct} onClick={handleAddProduct}>
+                       <Plus size={24} />
+                    </button>
+                 </div>
+               )}
+             </>
+           )}
         </div>
       </div>
-
-      {/* QUICK ADD CUSTOMER MODAL */}
-      {showAddCusModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div className="card fade-in" style={{ width: '100%', maxWidth: 380, padding: 24, boxShadow: 'var(--shadow-2xl)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Quick Add Customer</h3>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setShowAddCusModal(false)}><X size={18} /></button>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-              <div className="input-group">
-                <label className="input-label">Customer Name</label>
-                <input className="input" placeholder="e.g. Darpit Shah" value={newCusName} onChange={e => setNewCusName(e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Mobile Number</label>
-                <input className="input" placeholder="e.g. 9876543210" value={newCusMobile} onChange={e => setNewCusMobile(e.target.value)} />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn btn-glass" onClick={() => setShowAddCusModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleQuickAddCustomer} disabled={!newCusName || !newCusMobile}>Add & Select</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ITEM ADD / EDIT MODAL */}
-  
-
+      
+      {/* Bottom Bar */}
+      <div className={styles.bottomBar}>
+         <div className={styles.amountDue}>
+            Amount Due : <span className={styles.amountValue}>₹ {amountDue}</span>
+         </div>
+         <div className={styles.bottomActions}>
+            {!selectedItem ? (
+               <>
+                 <button className={styles.btnCancel} style={{marginRight: '12px'}} onClick={() => setOrderStep('search')}>Back</button>
+                 <button className={styles.btnCancel} style={{marginRight: '12px'}} onClick={() => {}}>Cancel</button>
+                 <button className={styles.btnCancel} style={{background: '#00ced1', color: '#111827'}} onClick={handleConfirmOrder}>Confirm Order</button>
+               </>
+            ) : (
+               <>
+                 <button className={styles.btnCancel} onClick={() => setSelectedItem(null)}>Back</button>
+                 <button className={styles.btnCancel} style={{background: '#00ced1', color: '#111827'}} onClick={handleConfirmOrder}>Add to Order</button>
+               </>
+            )}
+         </div>
+      </div>
     </div>
   );
 }
