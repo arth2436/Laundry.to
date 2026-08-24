@@ -101,7 +101,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     if (!mounted) return;
 
     const path = pathname.split('?')[0];
-    const isPublic = path === '/login';
+    const isPublic = path === '/login' || path.startsWith('/t/');
     const isAdminOnly = path.startsWith('/settings');
 
     if (!isAuthenticated) {
@@ -112,7 +112,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
         setAuthorized(true);
       }
     } else {
-      if (isPublic) {
+      if (isPublic && path === '/login') {
         setAuthorized(false);
         router.replace('/dashboard');
       } else if (isAdminOnly && currentUser?.role !== 'admin') {

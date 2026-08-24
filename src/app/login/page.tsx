@@ -25,15 +25,6 @@ export default function LoginPage() {
 
   const handleRoleChange = (r: 'admin' | 'cashier') => {
     setRole(r);
-    const user = dbUsers.find(u => u.role === r);
-    setUsername(user ? user.username : r);
-    
-    const defaultPasswords = { admin: 'admin123', cashier: 'cashier123' };
-    if (user && user.password === defaultPasswords[r]) {
-      setPassword(user.password);
-    } else {
-      setPassword('');
-    }
     setError('');
   };
 
@@ -92,10 +83,6 @@ export default function LoginPage() {
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ marginTop: 8, justifyContent: 'center', width: '100%', padding: '12px' }}>
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
-
-          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-            Demo: admin / admin123 &nbsp;|&nbsp; cashier / cashier123
-          </p>
         </div>
       </form>
     </div>

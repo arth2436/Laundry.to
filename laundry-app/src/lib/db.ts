@@ -277,18 +277,37 @@ export const ratesDB = {
 
 // ---------- Users ----------
 export const DEFAULT_USERS: User[] = [
-  { id: '1', name: 'Admin User', role: 'admin', username: 'admin', password: 'admin123' },
-  { id: '2', name: 'Cashier', role: 'cashier', username: 'cashier', password: 'cashier123' },
+  { id: '1', name: 'Admin User', role: 'admin', username: 'Admin', password: 'admin@009' },
+  { id: '2', name: 'Cashier', role: 'cashier', username: 'cashier', password: 'cashier@909' },
 ];
 
 export const usersDB = {
   getAll: (): User[] => {
     const stored = get<User>(KEYS.users);
-    return stored.length > 0 ? stored : DEFAULT_USERS;
+    if (stored.length > 0) {
+      let migrated = false;
+      const updated = stored.map(u => {
+        if (u.role === 'admin' && (u.username === 'admin' || u.username === 'Admin') && u.password === 'admin123') {
+          migrated = true;
+          return { ...u, username: 'Admin', password: 'admin@009' };
+        }
+        if (u.role === 'cashier' && u.username === 'cashier' && u.password === 'cashier123') {
+          migrated = true;
+          return { ...u, username: 'cashier', password: 'cashier@909' };
+        }
+        return u;
+      });
+      if (migrated) {
+        set(KEYS.users, updated);
+        return updated;
+      }
+      return stored;
+    }
+    return DEFAULT_USERS;
   },
   authenticate: (username: string, password: string): User | null => {
     const users = usersDB.getAll();
-    return users.find(u => u.username === username && u.password === password) || null;
+    return users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password) || null;
   },
   save: (users: User[]): void => set(KEYS.users, users),
 };

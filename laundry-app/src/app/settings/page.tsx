@@ -385,13 +385,13 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div style={{ padding: '12px 16px', background: 'var(--primary-brand-light)', border: '1px solid rgba(0, 102, 204, 0.15)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
                         <div style={{ fontWeight: 750, color: 'var(--text-primary)', marginBottom: 4 }}>👑 Admin Role</div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Username: <strong>admin</strong></div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Password: <strong>admin123</strong></div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Username: <strong>Admin</strong></div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Password: <strong>admin@009</strong></div>
                       </div>
                       <div style={{ padding: '12px 16px', background: 'var(--purple-light)', border: '1px solid rgba(139, 92, 246, 0.15)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
                         <div style={{ fontWeight: 750, color: 'var(--text-primary)', marginBottom: 4 }}>💼 Cashier Desk Role</div>
                         <div style={{ color: 'var(--text-secondary)' }}>Username: <strong>cashier</strong></div>
-                        <div style={{ color: 'var(--text-secondary)' }}>Password: <strong>cashier123</strong></div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Password: <strong>cashier@909</strong></div>
                       </div>
                     </div>
                   </div>
@@ -786,7 +786,7 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>👑 Administrator Account</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Username: <strong>admin</strong></div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Username: <strong>Admin</strong></div>
                       </div>
                       <span className="badge badge-blue">Admin Role</span>
                     </div>
