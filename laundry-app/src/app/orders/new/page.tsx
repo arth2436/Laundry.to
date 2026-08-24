@@ -370,7 +370,7 @@ export default function NewOrderPage() {
                       type="checkbox" 
                       checked={isPriority} 
                       onChange={e => setIsPriority(e.target.checked)} 
-                      style={{ srOnly: true, width: 38, height: 20, appearance: 'none', background: isPriority ? 'var(--primary-brand)' : 'var(--border-light)', borderRadius: 10, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
+                      style={{ width: 38, height: 20, appearance: 'none', background: isPriority ? 'var(--primary-brand)' : 'var(--border-light)', borderRadius: 10, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
                     />
                     <div style={{ width: 14, height: 14, background: '#fff', borderRadius: '50%', position: 'absolute', top: 3, left: isPriority ? 21 : 3, transition: '0.2s' }} />
                   </div>

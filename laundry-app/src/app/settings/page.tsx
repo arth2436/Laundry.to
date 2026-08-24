@@ -588,7 +588,7 @@ export default function SettingsPage() {
                                   type="checkbox" 
                                   checked={item.enabled} 
                                   onChange={e => updateItem(item.id, 'enabled', e.target.checked)} 
-                                  style={{ srOnly: true, width: 34, height: 18, appearance: 'none', background: item.enabled ? 'var(--success)' : 'var(--border-light)', borderRadius: 9, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
+                                  style={{ width: 34, height: 18, appearance: 'none', background: item.enabled ? 'var(--success)' : 'var(--border-light)', borderRadius: 9, transition: '0.2s', position: 'relative', cursor: 'pointer' }}
                                 />
                                 <div style={{ width: 12, height: 12, background: '#fff', borderRadius: '50%', position: 'absolute', transform: item.enabled ? 'translateX(18px)' : 'translateX(3px)', transition: '0.2s' }} />
                               </label>
