@@ -21,7 +21,7 @@ interface BasketItem {
   weight: number | string;
   rate: number;
   amount: number;
-  unit: 'pc' | 'kg';
+  unit: 'pc' | 'kg' | 'both';
   serviceLabel: string;
 }
 
@@ -102,7 +102,7 @@ export default function NewOrderPage() {
     const currentService = services.find(s => s.id === selectedService);
     const serviceLabel = currentService?.label || 'Wash & Fold';
     
-    const unit = item.unit || 'pc';
+    const unit = (['pc', 'kg', 'both'].includes(item.unit) ? item.unit : 'pc') as 'pc' | 'kg' | 'both';
     const rate = item.price ?? 0;
 
     setBasket(prev => {
@@ -146,7 +146,7 @@ export default function NewOrderPage() {
     }));
   };
 
-  const setBasketUnit = (id: string, newUnit: string) => {
+  const setBasketUnit = (id: string, newUnit: 'pc' | 'kg' | 'both') => {
     setBasket(prev => prev.map(item => {
       if (item.id !== id) return item;
 
@@ -226,7 +226,6 @@ export default function NewOrderPage() {
       name: newCusName,
       mobile: newCusMobile,
       email: `${newCusName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-      address: '',
     });
     setSelectedCus({
       id: newCus.id,
@@ -262,7 +261,7 @@ export default function NewOrderPage() {
       customerId: selectedCus.id,
       customerName: selectedCus.name,
       customerMobile: selectedCus.mobile,
-      customerEmail: selectedCus.email,
+      customerEmail: selectedCus.email || '',
       items: orderItems,
       totalWeight,
       totalAmount,
