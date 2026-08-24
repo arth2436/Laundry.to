@@ -1,0 +1,5 @@
+whatsapp-gateway/
+node_modules/
+.next/
+.vercel/
+laundry-app/
