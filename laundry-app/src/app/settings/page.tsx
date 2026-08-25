@@ -123,6 +123,17 @@ export default function SettingsPage() {
         setWaQr(data.qr);
         setWaNumber(data.number);
         setWaServerRunning(true);
+
+        // Auto-save URL to localStorage when Connected so it persists across navigation
+        if (data.status === 'Connected' && settings.whatsappGatewayUrl) {
+          const stored = settingsDB.get();
+          if (stored.whatsappGatewayUrl !== settings.whatsappGatewayUrl) {
+            const updated = { ...stored, whatsappGatewayUrl: settings.whatsappGatewayUrl };
+            settingsDB.save(updated);
+            loadSettings();
+          }
+        }
+
         // Auto-detect and save public ngrok URL from gateway
         if (data.publicUrl && data.publicUrl !== settings.whatsappGatewayUrl) {
           setWaPublicUrl(data.publicUrl);
