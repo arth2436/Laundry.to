@@ -1,16 +1,22 @@
 {
   "name": "whatsapp-gateway",
-  "version": "1.0.0",
-  "description": "Free lifetime local WhatsApp API Gateway",
+  "version": "2.0.0",
+  "description": "Free lifetime local WhatsApp API Gateway (Baileys)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "@hapi/boom": "^10.0.1",
     "@ngrok/ngrok": "^1.7.0",
+    "@whiskeysockets/baileys": "^6.7.16",
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "qrcode": "^1.5.4",
-    "whatsapp-web.js": "^1.26.0"
+    "pino": "^9.3.2",
+    "qrcode": "^1.5.4"
+  },
+  "allowScripts": {
+    "@whiskeysockets/baileys@6.7.24": true,
+    "protobufjs@7.6.5": true
   }
 }
