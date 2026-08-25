@@ -3,4 +3,7 @@ npm-debug.log
 .wwebjs_cache
 whatsapp_sessions
 test_auth_info
+auth_info_baileys
 current-public-url.txt
+ngrok-config.json
+*.bat

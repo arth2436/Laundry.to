@@ -11,7 +11,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 5000;
-const AUTH_FOLDER = path.join(__dirname, 'auth_info_baileys');
+// On Railway: AUTH_FOLDER=/data/auth_info_baileys (persistent Volume)
+// Locally: falls back to ./auth_info_baileys
+const AUTH_FOLDER = process.env.AUTH_FOLDER || path.join(__dirname, 'auth_info_baileys');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let latestQrBase64 = null;
