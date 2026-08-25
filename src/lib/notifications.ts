@@ -86,7 +86,9 @@ export async function sendEmailDirect(
   toEmail: string,
   subject: string,
   message: string,
-  settings?: CompanySettings
+  settings?: CompanySettings,
+  pdfBase64?: string,
+  pdfName?: string
 ): Promise<{ success: boolean; message: string }> {
   try {
     const response = await fetch('/api/send-email', {
@@ -100,6 +102,8 @@ export async function sendEmailDirect(
         shopPhone: settings?.phone,
         smtpEmail: settings?.smtpEmail,
         smtpPassword: settings?.smtpPassword,
+        pdfBase64,
+        pdfName
       }),
     });
 

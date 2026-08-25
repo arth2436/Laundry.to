@@ -251,7 +251,7 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
         email: email,
         loading: true,
         whatsappStatus: 'Generating PDF & Sending...',
-        emailStatus: 'Skipped (WhatsApp only)',
+        emailStatus: 'Sending email with PDF...',
         gatewayUsed: true
       });
 
@@ -271,19 +271,31 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
         console.error('Failed to generate PDF for WhatsApp:', pdfErr);
       }
 
-      const { sendWhatsAppDirect } = await import('@/lib/notifications');
-      const waRes = await sendWhatsAppDirect(
-        order.customerMobile, 
-        msg, 
-        settings, 
-        pdfBase64, 
-        `Invoice-${order.orderId}.pdf`
-      );
+      const { sendWhatsAppDirect, sendEmailDirect } = await import('@/lib/notifications');
+      
+      const [waRes, emailRes] = await Promise.all([
+        sendWhatsAppDirect(
+          order.customerMobile, 
+          msg, 
+          settings, 
+          pdfBase64, 
+          `Invoice-${order.orderId}.pdf`
+        ),
+        sendEmailDirect(
+          email,
+          `Invoice for your Order ${order.orderId}`,
+          msg,
+          settings,
+          pdfBase64,
+          `Invoice-${order.orderId}.pdf`
+        )
+      ]);
 
       setReadyNotif(prev => prev ? {
         ...prev,
         loading: false,
         whatsappStatus: waRes.success ? 'Invoice & PDF Sent via Gateway!' : `Failed: ${waRes.message}`,
+        emailStatus: emailRes.success ? 'Invoice Email Sent successfully!' : `Failed: ${emailRes.message}`,
         gatewayUsed: waRes.gatewayUsed
       } : null);
     } else {
@@ -535,10 +547,10 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
             
             <div style={{ fontSize: 36, marginBottom: 14 }}>✨</div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-              Order {readyNotif.orderId} Completed!
+              Notification Status
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-              Dispatching "Clothes Ready" notifications to <strong>{readyNotif.customerName}</strong>
+              Dispatching notifications to <strong>{readyNotif.customerName}</strong>
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', marginBottom: 24 }}>
