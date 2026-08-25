@@ -707,9 +707,25 @@ export default function SettingsPage() {
                           style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
                           placeholder="https://xxxx.ngrok-free.app/messages/chat  or  http://localhost:5000/messages/chat"
                           value={settings.whatsappGatewayUrl || ''}
-                          onChange={e => setSettingValue('whatsappGatewayUrl', e.target.value)}
+                          onChange={e => {
+                            const newUrl = e.target.value;
+                            setSettingValue('whatsappGatewayUrl', newUrl);
+                            // Immediately persist to localStorage so navigation never loses the URL
+                            const current = settingsDB.get();
+                            settingsDB.save({ ...current, whatsappGatewayUrl: newUrl });
+                          }}
                         />
-                        <button className="btn btn-primary btn-sm" onClick={() => { const s = { ...settings }; settingsDB.save(s); setSaved(true); setTimeout(() => setSaved(false), 2000); setWaServerRunning(true); setActiveTab('whatsapp'); }} style={{ whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => {
+                          // Re-read from state to ensure latest value is saved
+                          const s = settingsDB.get();
+                          const latest = { ...s, whatsappGatewayUrl: settings.whatsappGatewayUrl || s.whatsappGatewayUrl };
+                          settingsDB.save(latest);
+                          loadSettings();
+                          setSaved(true);
+                          setTimeout(() => setSaved(false), 2000);
+                          setWaServerRunning(true);
+                          setActiveTab('whatsapp');
+                        }} style={{ whiteSpace: 'nowrap' }}>
                           Save &amp; Retry
                         </button>
                       </div>
