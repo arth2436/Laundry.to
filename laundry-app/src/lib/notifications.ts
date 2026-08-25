@@ -79,19 +79,47 @@ export async function sendWhatsAppDirect(
 }
 
 /**
- * Sends an email notification (always simulated in frontend).
+ * Sends a real email via /api/send-email (Resend).
+ * Falls back gracefully if the API key is not configured.
  */
 export async function sendEmailDirect(
   toEmail: string,
   subject: string,
-  message: string
+  message: string,
+  settings?: CompanySettings
 ): Promise<{ success: boolean; message: string }> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        message: `Simulated Email delivered successfully to ${toEmail}!`,
-      });
-    }, 800);
-  });
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: toEmail,
+        subject,
+        message,
+        shopName: settings?.name,
+        shopPhone: settings?.phone,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        message: data.error || 'Email sending failed.',
+      };
+    }
+
+    return {
+      success: true,
+      message: `Email sent to ${toEmail}!`,
+    };
+  } catch (error: any) {
+    console.error('sendEmailDirect error:', error);
+    return {
+      success: false,
+      message: `Email error: ${error.message}`,
+    };
+  }
 }
+

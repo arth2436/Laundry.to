@@ -85,7 +85,7 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
     
     const [waRes, emailRes] = await Promise.all([
       sendWhatsAppDirect(o.customerMobile, text, settings),
-      sendEmailDirect(email, `Your Laundry Order ${o.orderId} is Ready!`, text)
+      sendEmailDirect(email, `Your Laundry Order ${o.orderId} is Ready!`, text, settings)
     ]);
 
     // 4. Update modal state with results
@@ -93,7 +93,7 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
       ...prev,
       loading: false,
       whatsappStatus: waRes.success ? (waRes.gatewayUsed ? 'Sent via API Gateway!' : 'Sent (Simulated)!') : `Failed: ${waRes.message}`,
-      emailStatus: emailRes.success ? 'Sent (Simulated)!' : 'Failed',
+      emailStatus: emailRes.success ? 'Sent!' : `Failed: ${emailRes.message}`,
       gatewayUsed: waRes.gatewayUsed
     } : null);
   };
