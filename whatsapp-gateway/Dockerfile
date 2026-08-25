@@ -11,7 +11,7 @@ WORKDIR /app
 
 # Install dependencies first (layer caching)
 COPY package*.json ./
-RUN npm install --omit=dev && npm approve-scripts @whiskeysockets/baileys protobufjs
+RUN npm install --omit=dev
 
 # Copy source code
 COPY . .
