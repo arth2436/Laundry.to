@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings>(DEFAULT_SETTINGS);
   const [services, setServices] = useState<Service[]>([]);
   const [items, setItems] = useState<ServiceItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'profile' | 'catalog' | 'whatsapp' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'catalog' | 'whatsapp' | 'email' | 'security'>('profile');
   const [activeService, setActiveService] = useState('wash-fold');
   const [catalogSearch, setCatalogSearch] = useState('');
   const [saved, setSaved] = useState(false);
@@ -351,6 +351,25 @@ export default function SettingsPage() {
               }}
             >
               <MessageCircle size={16} /> WhatsApp Link
+            </button>
+            <button 
+              onClick={() => setActiveTab('email')} 
+              style={{
+                padding: '10px 20px',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: 13.5,
+                background: activeTab === 'email' ? 'var(--primary-brand)' : 'transparent',
+                color: activeTab === 'email' ? '#fff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              <span style={{ fontSize: 16 }}>📧</span> Email Settings
             </button>
             <button 
               onClick={() => setActiveTab('security')} 
@@ -802,6 +821,55 @@ export default function SettingsPage() {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'email' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 800, margin: '0 auto' }}>
+              <div className="card" style={{ padding: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+                  <div style={{ width: 48, height: 48, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)' }}>
+                    <span style={{ fontSize: 24 }}>📧</span>
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Email Configuration</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Connect your SMTP email account (like Gmail) to send invoices and notifications.</p>
+                  </div>
+                </div>
+
+                <div className="divider" style={{ margin: '20px 0' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <div style={{ padding: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)', borderRadius: 12 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>SMTP Credentials</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <label className="input-label">Email Address (e.g., yourshop@gmail.com)</label>
+                        <input 
+                          className="input" 
+                          type="email" 
+                          value={settings.smtpEmail || ''} 
+                          onChange={e => setSettingValue('smtpEmail', e.target.value)} 
+                          placeholder="Enter your email address"
+                        />
+                      </div>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <label className="input-label">App Password</label>
+                        <input 
+                          className="input" 
+                          type="password" 
+                          value={settings.smtpPassword || ''} 
+                          onChange={e => setSettingValue('smtpPassword', e.target.value)} 
+                          placeholder="Enter your App Password"
+                        />
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                          <strong>For Gmail users:</strong> Do not use your regular password. You need to create an <strong>App Password</strong>. Go to your Google Account Settings &gt; Security &gt; 2-Step Verification &gt; App Passwords. Generate a new password and paste it here.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

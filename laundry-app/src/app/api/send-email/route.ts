@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const FROM_EMAIL = 'Laundry App <onboarding@resend.dev>';
-const REPLY_TO  = 'info.laundryto@gmail.com';
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(req: NextRequest) {
   try {
-    const { to, subject, message, shopName, shopPhone } = await req.json();
+    const { to, subject, message, shopName, shopPhone, smtpEmail, smtpPassword } = await req.json();
 
     if (!to || !subject || !message) {
       return NextResponse.json({ success: false, error: 'Missing required fields.' }, { status: 400 });
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not set — email skipped.');
-      return NextResponse.json({ success: false, error: 'Email service not configured.' }, { status: 503 });
+    if (!smtpEmail && !smtpPassword && !resend) {
+      console.warn('No SMTP credentials and RESEND_API_KEY not set — email skipped.');
+      return NextResponse.json({ success: false, error: 'Email service not configured. Please add SMTP credentials in Settings.' }, { status: 503 });
     }
 
     const html = `
@@ -70,8 +68,7 @@ export async function POST(req: NextRequest) {
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
               <p style="font-size:11px;color:#9ca3af;margin:0;">
-                ${shopName || 'Laundry App'} &bull; ${shopPhone || ''} &bull; 
-                <a href="mailto:${REPLY_TO}" style="color:#6366f1;text-decoration:none;">${REPLY_TO}</a>
+                ${shopName || 'Laundry App'} &bull; ${shopPhone || ''}
               </p>
               <p style="font-size:10px;color:#d1d5db;margin:6px 0 0;">
                 You received this because you are a valued customer.
@@ -86,20 +83,54 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      replyTo: REPLY_TO,
-      to: [to],
-      subject,
-      html,
-    });
+    // 1. Try Nodemailer if SMTP credentials are provided
+    if (smtpEmail && smtpPassword) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail', // Usually assuming Gmail for simple setups. Users can also configure generic host if needed.
+        auth: {
+          user: smtpEmail,
+          pass: smtpPassword,
+        },
+      });
 
-    if (error) {
-      console.error('Resend error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      try {
+        const info = await transporter.sendMail({
+          from: `"${shopName || 'Laundry App'}" <${smtpEmail}>`,
+          to,
+          subject,
+          html,
+        });
+        return NextResponse.json({ success: true, id: info.messageId });
+      } catch (smtpErr: any) {
+        console.error('SMTP sending error:', smtpErr);
+        // If it fails and resend isn't configured, return the error
+        if (!resend) {
+          return NextResponse.json({ success: false, error: smtpErr.message }, { status: 500 });
+        }
+        console.warn('Falling back to Resend after SMTP failure');
+      }
     }
 
-    return NextResponse.json({ success: true, id: data?.id });
+    // 2. Fallback to Resend
+    if (resend) {
+      const FROM_EMAIL = 'Laundry App <onboarding@resend.dev>';
+      const REPLY_TO  = smtpEmail || 'info.laundryto@gmail.com';
+      
+      const { data, error } = await resend.emails.send({
+        from: FROM_EMAIL,
+        replyTo: REPLY_TO,
+        to: [to],
+        subject,
+        html,
+      });
+
+      if (error) {
+        console.error('Resend error:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, id: data?.id });
+    }
+
   } catch (err: any) {
     console.error('Send email route error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

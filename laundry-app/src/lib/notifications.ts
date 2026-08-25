@@ -98,6 +98,8 @@ export async function sendEmailDirect(
         message,
         shopName: settings?.name,
         shopPhone: settings?.phone,
+        smtpEmail: settings?.smtpEmail,
+        smtpPassword: settings?.smtpPassword,
       }),
     });
 

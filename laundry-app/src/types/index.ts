@@ -80,6 +80,8 @@ export interface CompanySettings {
   upiId?: string;
   upiName?: string;
   whatsappGatewayUrl?: string;
+  smtpEmail?: string;
+  smtpPassword?: string;
 }
 
 export interface LaundryRate {
