@@ -251,7 +251,7 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
         email: email,
         loading: true,
         whatsappStatus: 'Generating PDF & Sending...',
-        emailStatus: 'Skipped (WhatsApp only)',
+        emailStatus: 'Sending...',
         gatewayUsed: true
       });
 
@@ -271,19 +271,23 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
         console.error('Failed to generate PDF for WhatsApp:', pdfErr);
       }
 
-      const { sendWhatsAppDirect } = await import('@/lib/notifications');
-      const waRes = await sendWhatsAppDirect(
-        order.customerMobile, 
-        msg, 
-        settings, 
-        pdfBase64, 
-        `Invoice-${order.orderId}.pdf`
-      );
+      const { sendWhatsAppDirect, sendEmailDirect } = await import('@/lib/notifications');
+      const [waRes, emailRes] = await Promise.all([
+        sendWhatsAppDirect(
+          order.customerMobile, 
+          msg, 
+          settings, 
+          pdfBase64, 
+          `Invoice-${order.orderId}.pdf`
+        ),
+        sendEmailDirect(email, `Your Laundry Order ${order.orderId} is Ready!`, msg, settings)
+      ]);
 
       setReadyNotif(prev => prev ? {
         ...prev,
         loading: false,
         whatsappStatus: waRes.success ? 'Invoice & PDF Sent via Gateway!' : `Failed: ${waRes.message}`,
+        emailStatus: emailRes.success ? 'Sent!' : `Failed: ${emailRes.message}`,
         gatewayUsed: waRes.gatewayUsed
       } : null);
     } else {

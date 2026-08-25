@@ -143,17 +143,21 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
         email: email,
         loading: true,
         whatsappStatus: 'Sending...',
-        emailStatus: 'Skipped (WhatsApp only)',
+        emailStatus: 'Sending...',
         gatewayUsed: true
       });
       
-      const { sendWhatsAppDirect } = await import('@/lib/notifications');
-      const waRes = await sendWhatsAppDirect(targetOrder.customerMobile, notifText, settingsObj);
+      const { sendWhatsAppDirect, sendEmailDirect } = await import('@/lib/notifications');
+      const [waRes, emailRes] = await Promise.all([
+        sendWhatsAppDirect(targetOrder.customerMobile, notifText, settingsObj),
+        sendEmailDirect(email, `Your Laundry Order ${targetOrder.orderId} is Ready!`, notifText, settingsObj)
+      ]);
       
       setReadyNotif(prev => prev ? {
         ...prev,
         loading: false,
         whatsappStatus: waRes.success ? 'Sent via API Gateway!' : `Failed: ${waRes.message}`,
+        emailStatus: emailRes.success ? 'Sent!' : `Failed: ${emailRes.message}`,
         gatewayUsed: waRes.gatewayUsed
       } : null);
     } else {
