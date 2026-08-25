@@ -180,18 +180,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAutoConfigure = () => {
-    const updated = {
-      ...settings,
-      whatsappGatewayUrl: 'http://localhost:5000/messages/chat'
-    };
-    setSettings(updated);
-    settingsDB.save(updated);
-    loadSettings();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-    alert('Portal configured and saved successfully to use your local free gateway!');
-  };
 
   const handleUpdatePassword = (userId: string, role: string, newPw: string) => {
     if (!newPw || newPw.trim().length < 4) {
@@ -374,18 +362,7 @@ export default function SettingsPage() {
                       <div className="input-group"><label className="input-label">UPI Merchant Name</label><input className="input" value={settings.upiName || ''} onChange={e => setSettingValue('upiName', e.target.value)} placeholder="LaundryTO" /></div>
                     </div>
                     
-                    <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', marginTop: 8, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      💬 WhatsApp Gateway (Local)
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">WhatsApp Gateway URL</label>
-                      <input 
-                        className="input" 
-                        value={settings.whatsappGatewayUrl || ''} 
-                        onChange={e => setSettingValue('whatsappGatewayUrl', e.target.value)} 
-                        placeholder="http://localhost:5000/messages/chat" 
-                      />
-                    </div>
+
                   </div>
                 </div>
 
@@ -670,32 +647,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
-                    {/* Two Options */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      {/* Option A - Same Machine */}
-                      <div style={{ padding: '20px', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                        <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>💻 Option A — This Computer</div>
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>Run the gateway on this computer. Open a terminal and run:</p>
-                        <div style={{ background: '#1a1a2e', padding: '10px 14px', borderRadius: 8, fontFamily: 'monospace', fontSize: 11.5, color: '#7dd3fc', marginBottom: 12, lineHeight: 1.8 }}>
-                          cd e:\Laundry\whatsapp-gateway<br/>
-                          npm start
-                        </div>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Then refresh this page.</p>
-                      </div>
 
-                      {/* Option B - Internet via ngrok */}
-                      <div style={{ padding: '20px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: 12, border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                        <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>🌐 Option B — Any Network (Internet)</div>
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>Use ngrok to get a <strong>public URL</strong> that works from any laptop, anywhere:</p>
-                        <div style={{ background: '#1a1a2e', padding: '10px 14px', borderRadius: 8, fontFamily: 'monospace', fontSize: 11.5, color: '#7dd3fc', marginBottom: 12, lineHeight: 1.8 }}>
-                          <span style={{ color: '#94a3b8' }}># 1. Run the gateway</span><br/>
-                          npm start<br/>
-                          <span style={{ color: '#94a3b8' }}># 2. In another terminal</span><br/>
-                          ngrok http 5000
-                        </div>
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Copy the <code>https://xxxx.ngrok-free.app</code> URL from ngrok, then paste it below.</p>
-                      </div>
-                    </div>
 
                     {/* URL Configurator */}
                     <div style={{ padding: '20px 24px', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
@@ -705,7 +657,7 @@ export default function SettingsPage() {
                         <input
                           className="input"
                           style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
-                          placeholder="https://xxxx.ngrok-free.app/messages/chat  or  http://localhost:5000/messages/chat"
+                          placeholder="https://laundryto-production.up.railway.app/messages/chat"
                           value={settings.whatsappGatewayUrl || ''}
                           onChange={e => {
                             const newUrl = e.target.value;
@@ -730,7 +682,7 @@ export default function SettingsPage() {
                         </button>
                       </div>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                        💡 Get a <strong>free permanent URL</strong>: Sign up at <a href="https://dashboard.ngrok.com/signup" target="_blank" rel="noreferrer" style={{ color: 'var(--primary-brand)' }}>ngrok.com</a> → Domains → claim your free static domain → run <code>ngrok http --domain=YOUR-DOMAIN.ngrok-free.app 5000</code>
+                        💡 Make sure your Railway gateway is running and paste its URL above.
                       </p>
                     </div>
                   </div>
@@ -747,9 +699,7 @@ export default function SettingsPage() {
                         </p>
                         
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                          <button className="btn btn-glass" onClick={handleAutoConfigure} style={{ fontSize: 12.5 }}>
-                            ⚙️ Auto-Configure Portal API Setting
-                          </button>
+
                           <button className="btn btn-danger" onClick={handleWaDisconnect} style={{ fontSize: 12.5 }}>
                             Disconnect WhatsApp Session
                           </button>

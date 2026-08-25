@@ -218,7 +218,7 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   currency: '₹',
   upiId: 'maaambika5108@fbl',
   upiName: 'MAA AMBICA SHINE AND STEAM',
-  whatsappGatewayUrl: 'http://localhost:5000/messages/chat',
+  whatsappGatewayUrl: '',
 };
 
 export const settingsDB = {
