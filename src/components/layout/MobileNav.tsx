@@ -50,7 +50,7 @@ export default function MobileNav() {
   return (
     <>
       {/* Bottom Bar */}
-      <nav className="mobile-nav">
+      <nav className="mobile-nav no-print">
         {primaryTabs.map((tab) => {
           if (tab.isCenter) {
             return (
@@ -85,12 +85,12 @@ export default function MobileNav() {
 
       {/* Drawer Overlay */}
       <div 
-        className={`mobile-sheet-overlay ${isMoreOpen ? 'open' : ''}`}
+        className={`mobile-sheet-overlay no-print ${isMoreOpen ? 'open' : ''}`}
         onClick={() => setIsMoreOpen(false)}
       />
 
       {/* Drawer Sheet */}
-      <div className={`mobile-sheet ${isMoreOpen ? 'open' : ''}`}>
+      <div className={`mobile-sheet no-print ${isMoreOpen ? 'open' : ''}`}>
         <div className="mobile-sheet-drag-handle" onClick={() => setIsMoreOpen(false)} />
         
         {/* User Card */}

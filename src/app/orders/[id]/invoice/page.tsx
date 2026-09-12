@@ -497,7 +497,15 @@ Please visit us at your convenience to collect your clean, fresh garments. Thank
           {/* Print-only white invoice — TWO COPIES: Customer + Shop */}
           <style>{`
             @media print {
-              .app-layout, .sidebar, .topbar, .no-print { display: none !important; }
+              .no-print, .sidebar, .topbar, .mobile-nav, .mobile-sheet, .mobile-sheet-overlay { display: none !important; }
+              .app-layout, .main-content, .page-body {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+              }
               .print-invoice { display: block !important; }
               body { background: white !important; margin: 0; padding: 16px; font-family: Arial, sans-serif; color: #000; }
             }

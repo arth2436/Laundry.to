@@ -10,7 +10,7 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { CompanySettings, Order } from '@/types';
-import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 
 // Each physical garment gets its own tag
 interface GarmentTag {
@@ -34,7 +34,7 @@ function buildTags(order: Order, shopName: string): GarmentTag[] {
   const tags: GarmentTag[] = [];
   let globalIndex = 1;
 
-  order.items.forEach((item, itemIdx) => {
+  order.items.forEach((item) => {
     const qty = Math.max(1, Number(item.quantity));
     for (let q = 0; q < qty; q++) {
       const seq = String(globalIndex).padStart(3, '0');
@@ -62,24 +62,23 @@ function BarcodeCanvas({ value }: { value: string }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    import('jsbarcode').then(mod => {
-      if (cancelled || !svgRef.current) return;
-      const JsBarcode = mod.default;
+    if (!svgRef.current) return;
+    try {
       JsBarcode(svgRef.current, value, {
         format: 'CODE128',
-        width: 1.6,
-        height: 38,
-        displayValue: false, // hide value in raw barcode image itself to make it cleaner
-        margin: 2,
+        width: 1.4,
+        height: 32,
+        displayValue: false,
+        margin: 0,
         lineColor: '#000000',
         background: '#ffffff',
       });
-    });
-    return () => { cancelled = true; };
+    } catch (e) {
+      console.error('Barcode error:', e);
+    }
   }, [value]);
 
-  return <svg ref={svgRef} style={{ width: '100%', maxWidth: 220 }} />;
+  return <svg ref={svgRef} style={{ width: '100%', maxWidth: 190, height: 'auto', minHeight: 32, display: 'block', margin: '0 auto' }} />;
 }
 
 // SingleTag component
@@ -92,72 +91,77 @@ function SingleTag({ tag, idx, isLast }: { tag: GarmentTag; idx: number; isLast:
     : '—';
 
   return (
-    <div style={{
-      width: '100%',
-      maxWidth: 300,
-      fontFamily: '"Courier New", Courier, monospace',
-      fontSize: 12,
-      color: '#000',
-      background: '#fff',
-      padding: '12px 14px',
-      pageBreakAfter: isLast ? 'avoid' : 'always',
-      breakAfter: isLast ? 'avoid' : 'always',
-    }}>
+    <div
+      className="single-tag"
+      style={{
+        width: '100%',
+        maxWidth: 240,
+        margin: '0 auto',
+        fontFamily: '"Courier New", Courier, monospace',
+        fontSize: 10.5,
+        color: '#000000',
+        background: '#ffffff',
+        padding: '6px 8px',
+        boxSizing: 'border-box',
+        pageBreakInside: 'avoid',
+        breakInside: 'avoid',
+      }}
+    >
       {/* Logo & Shop Name Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8, borderBottom: '1px dashed #ccc', paddingBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 4, borderBottom: '1px dashed #000000', paddingBottom: 3 }}>
         <img 
           src="/logo.jpg" 
           alt="Logo" 
-          style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #ccc', objectFit: 'cover' }} 
+          style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid #000000', objectFit: 'cover' }} 
         />
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.01em', textTransform: 'uppercase', color: '#000000' }}>
           {tag.shopName}
         </div>
       </div>
 
       {/* Customer & Order details */}
-      <div style={{ lineHeight: 1.3, marginBottom: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700 }}>Customer:</span>
-          <span>{tag.customerName}</span>
+      <div style={{ lineHeight: 1.3, marginBottom: 4, color: '#000000', fontSize: 10, width: 'fit-content', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>Customer:</span>
+          <span style={{ fontWeight: 700, color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.customerName}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700 }}>Mobile:</span>
-          <span>{tag.mobile}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>Mobile:</span>
+          <span style={{ color: '#000000', fontWeight: 600 }}>{tag.mobile}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700 }}>Order No:</span>
-          <span style={{ fontWeight: 700 }}>{tag.orderId}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>Order No:</span>
+          <span style={{ fontWeight: 800, color: '#000000' }}>{tag.orderId}</span>
         </div>
       </div>
 
       {/* Barcode Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, margin: '6px 0', borderTop: '1px dashed #ccc', borderBottom: '1px dashed #ccc', padding: '6px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, margin: '3px 0', borderTop: '1px dashed #000000', borderBottom: '1px dashed #000000', padding: '3px 0' }}>
         <BarcodeCanvas value={tag.tagId} />
-        <div style={{ fontSize: 9.5, fontWeight: 700, color: '#000', marginTop: -2 }}>{tag.tagId}</div>
+        <div style={{ fontSize: 8.5, fontWeight: 700, color: '#000000' }}>{tag.tagId}</div>
       </div>
 
       {/* Item info */}
-      <div style={{ marginTop: 4, lineHeight: 1.4 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700 }}>Garment:</span>
-          <span style={{ fontWeight: 700 }}>{tag.itemType.toUpperCase()}</span>
+      <div style={{ marginTop: 2, lineHeight: 1.3, color: '#000000', fontSize: 10, width: 'fit-content', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>Garment:</span>
+          <span style={{ fontWeight: 800, color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.itemType.toUpperCase()}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Received:</span>
-          <span>{dayStr}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ color: '#000000', fontWeight: 700 }}>Received:</span>
+          <span style={{ color: '#000000', fontWeight: 600 }}>{dayStr}</span>
         </div>
         {tag.deliveryDate && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700 }}>Delivery:</span>
-            <span style={{ fontWeight: 750 }}>{deliveryStr}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, color: '#000000' }}>Delivery:</span>
+            <span style={{ fontWeight: 750, color: '#000000' }}>{deliveryStr}</span>
           </div>
         )}
       </div>
 
       {/* Item count / total */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 8, paddingTop: 4, borderTop: '1px solid #000' }}>
-        <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 4, paddingTop: 3, borderTop: '1px solid #000000', color: '#000000' }}>
+        <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 0.5, color: '#000000' }}>
           TAG {tag.globalIndex} OF {tag.totalItems}
         </div>
       </div>
@@ -165,9 +169,10 @@ function SingleTag({ tag, idx, isLast }: { tag: GarmentTag; idx: number; isLast:
       {/* Dashed separator (except last) */}
       {!isLast && (
         <div style={{
-          marginTop: 10,
-          borderTop: '2px dashed #000',
-          marginLeft: -14, marginRight: -14,
+          marginTop: 6,
+          marginBottom: 6,
+          borderTop: '2px dashed #000000',
+          marginLeft: -8, marginRight: -8,
         }} />
       )}
     </div>
@@ -293,15 +298,45 @@ export default function TagPage() {
               <style>{`
                 @media print {
                   html, body {
-                    background: white !important;
+                    background: #ffffff !important;
+                    color: #000000 !important;
                     margin: 0 !important;
                     padding: 0 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                   }
-                  .app-layout, .sidebar, .topbar, .no-print {
+                  .no-print, .sidebar, .topbar, .mobile-nav, .mobile-nav *, .mobile-sheet, .mobile-sheet *, .mobile-sheet-overlay, nav {
                     display: none !important;
+                  }
+                  .app-layout, .main-content, .page-body {
+                    display: block !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
                   }
                   .print-tags {
                     display: block !important;
+                    width: 100% !important;
+                    max-width: 80mm !important;
+                    margin: 0 auto !important;
+                    padding: 0 !important;
+                    background: #ffffff !important;
+                  }
+                  .single-tag {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 80mm !important;
+                    margin: 0 auto !important;
+                    box-sizing: border-box !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                  }
+                  .print-tags *, .single-tag, .single-tag * {
+                    color: #000000 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                   }
                   @page {
                     size: 80mm auto;

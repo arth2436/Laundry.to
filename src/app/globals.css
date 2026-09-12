@@ -967,9 +967,16 @@ tr:last-child td {
    ═══════════════════════════════ */
 @media print {
   body { background: white !important; color: black !important; }
-  .no-print { display: none !important; }
-  .print-invoice, .print-tag { display: block !important; }
-  .sidebar, .topbar, .app-layout > .main-content > .page-body > *:not(.print-invoice):not(.print-tag) { display: none !important; }
+  .no-print, .sidebar, .topbar, .mobile-nav, .mobile-sheet, .mobile-sheet-overlay { display: none !important; }
+  .print-invoice, .print-tag, .print-tags { display: block !important; }
+  .app-layout, .main-content, .page-body {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* ═══════════════════════════════

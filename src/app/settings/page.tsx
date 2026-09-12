@@ -110,7 +110,11 @@ export default function SettingsPage() {
         let gatewayOrigin = 'http://localhost:5000';
         if (settings.whatsappGatewayUrl) {
           try {
-            gatewayOrigin = new URL(settings.whatsappGatewayUrl).origin;
+            let urlStr = settings.whatsappGatewayUrl;
+            if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) {
+              urlStr = 'http://' + urlStr;
+            }
+            gatewayOrigin = new URL(urlStr).origin;
           } catch (e) {}
         }
         const res = await fetch(`${gatewayOrigin}/status`, {
