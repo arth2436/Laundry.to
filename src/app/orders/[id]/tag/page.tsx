@@ -18,6 +18,7 @@ interface GarmentTag {
   globalIndex: number;     // e.g. 3
   totalItems: number;      // e.g. 17  (total across all items)
   itemType: string;        // e.g. "T-Shirt"
+  itemQuantity: number;    // e.g. 2
   customerName: string;
   orderId: string;
   mobile: string;
@@ -43,6 +44,7 @@ function buildTags(order: Order, shopName: string): GarmentTag[] {
         globalIndex,
         totalItems: total,
         itemType: item.type,
+        itemQuantity: qty,
         customerName: order.customerName,
         orderId: order.orderId,
         mobile: order.customerMobile,
@@ -146,6 +148,10 @@ function SingleTag({ tag, idx, isLast }: { tag: GarmentTag; idx: number; isLast:
         <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
           <span style={{ fontWeight: 700, color: '#000000' }}>Garment:</span>
           <span style={{ fontWeight: 800, color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.itemType.toUpperCase()}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, color: '#000000' }}>Qty:</span>
+          <span style={{ fontWeight: 800, color: '#000000' }}>{tag.itemQuantity}</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '74px auto', gap: 6, alignItems: 'center' }}>
           <span style={{ color: '#000000', fontWeight: 700 }}>Received:</span>
