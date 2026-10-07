@@ -39,13 +39,60 @@ export default function NewOrderPage() {
   
   const displayedCustomers = customerSearchQuery ? searchCustomers(customerSearchQuery) : customers;
 
-  const [selectedItem, setSelectedItem] = useState<{ id: number; name: string; price: number; quantity: number; type: string; subType: string; imageText?: string; isShirtBan?: boolean; minPrice?: number; isCustom?: boolean } | null>(null);
+  interface SelectedItem {
+    id: number;
+    name: string;
+    price: number;
+    weight: number;
+    quantity: number;
+    unit: 'kg' | 'pc';
+    type: string;
+    subType: string;
+    imageText?: string;
+    isShirtBan?: boolean;
+    minPrice?: number;
+    isCustom?: boolean;
+  }
+
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [isDiscountExpanded, setIsDiscountExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState('Discount');
   const [activeCategory, setActiveCategory] = useState('WASH AND FOLD');
   const [activeSubCategory, setActiveSubCategory] = useState('Mixed any (5 clothes approx)');
   const [itemNoteText, setItemNoteText] = useState('');
   const [productsList, setProductsList] = useState<{ id: number; name: string; quantity: number; search: string; showSuggestions: boolean }[]>([]);
+
+  // Discount & Round Off States
+  const [discountType, setDiscountType] = useState<'flat' | 'percent'>('flat');
+  const [discountValue, setDiscountValue] = useState<string>('');
+  const [roundOffEnabled, setRoundOffEnabled] = useState<boolean>(true);
+
+  // Weight & Quantity Helpers
+  const updateWeight = (delta: number) => {
+    if (!selectedItem) return;
+    const current = selectedItem.weight || 1;
+    const newWeight = Math.max(0.1, Math.round((current + delta) * 10) / 10);
+    setSelectedItem({ ...selectedItem, weight: newWeight });
+  };
+
+  const setWeightDirect = (val: string) => {
+    if (!selectedItem) return;
+    const parsed = parseFloat(val);
+    setSelectedItem({ ...selectedItem, weight: isNaN(parsed) ? 0 : Math.max(0, parsed) });
+  };
+
+  const updateQuantity = (delta: number) => {
+    if (!selectedItem) return;
+    const current = selectedItem.quantity || 1;
+    const newQty = Math.max(1, current + delta);
+    setSelectedItem({ ...selectedItem, quantity: newQty });
+  };
+
+  const setQuantityDirect = (val: string) => {
+    if (!selectedItem) return;
+    const parsed = parseInt(val, 10);
+    setSelectedItem({ ...selectedItem, quantity: isNaN(parsed) ? 1 : Math.max(1, parsed) });
+  };
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -106,7 +153,9 @@ export default function NewOrderPage() {
       id: 1,
       name: "WASH AND FOLD",
       price: 80,
-      quantity: 1,
+      weight: 1.0,
+      quantity: 5,
+      unit: 'kg',
       type: "WASH AND FOLD (5 CLOTHES APPROX)",
       subType: "WASH AND FOLD (5 clothes approx)/Mixed any (5 clothes",
       imageText: "WASH\n&\nFOLD"
@@ -118,7 +167,9 @@ export default function NewOrderPage() {
       id: 2,
       name: "WASH AND STEAM IRON",
       price: 110,
-      quantity: 1,
+      weight: 1.0,
+      quantity: 5,
+      unit: 'kg',
       type: "WASH AND STEAM (5 CLOTHES APPROX)",
       subType: "Wash and Steam (5 clothes approx)/Mixed any (5 clothes",
       imageText: "WASH\n&\nSTEAM"
@@ -130,7 +181,9 @@ export default function NewOrderPage() {
       id: 3,
       name: "ALL CATEGORIES",
       price: 110,
-      quantity: 1,
+      weight: 1.0,
+      quantity: 5,
+      unit: 'kg',
       type: "WASH AND STEAM (5 CLOTHES APPROX)",
       subType: "Wash and Steam (5 clothes approx)/WASH & IRONING/All",
       isShirtBan: true,
@@ -143,7 +196,9 @@ export default function NewOrderPage() {
       id: Date.now(),
       name: "Custom Item",
       price: 0,
+      weight: 1.0,
       quantity: 1,
+      unit: category === 'FOOTWEAR' ? 'pc' : 'kg',
       type: category,
       subType: "Custom Item",
       isCustom: true
@@ -156,7 +211,9 @@ export default function NewOrderPage() {
       id: Date.now(),
       name: name.toUpperCase(),
       price: price,
+      weight: 1.0,
       quantity: 1,
+      unit: 'pc',
       type: "FOOTWARE",
       subType: `Footware/Footware/${name}`,
       imageText: name.split(' ').map(w => w[0]).join('')
@@ -164,46 +221,68 @@ export default function NewOrderPage() {
     setActiveTab('Discount');
   };
 
-  let calcAmt = 0;
-  if (selectedItem && !selectedItem.isCustom) {
-     calcAmt += selectedItem.price * selectedItem.quantity;
+  // Price & Total Calculations
+  let itemTotal = 0;
+  if (selectedItem) {
+    if (selectedItem.isCustom) {
+      itemTotal = selectedItem.price;
+    } else if (selectedItem.unit === 'kg') {
+      itemTotal = selectedItem.price * selectedItem.weight;
+    } else {
+      itemTotal = selectedItem.price * selectedItem.quantity;
+    }
   }
-  calcAmt += productsList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
-  
-  const amountDue = calcAmt.toFixed(2);
+
+  const productsTotal = productsList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+  const subTotal = itemTotal + productsTotal;
+
+  // Discount Calculation
+  const numDiscount = Math.max(0, parseFloat(discountValue) || 0);
+  let discountAmount = 0;
+  if (discountType === 'percent') {
+    discountAmount = (subTotal * Math.min(100, numDiscount)) / 100;
+  } else {
+    discountAmount = Math.min(subTotal, numDiscount);
+  }
+
+  const afterDiscount = Math.max(0, subTotal - discountAmount);
+  const roundedAmount = roundOffEnabled ? Math.round(afterDiscount) : afterDiscount;
+  const roundOffDiff = roundedAmount - afterDiscount;
+  const amountDue = roundedAmount.toFixed(2);
 
   const handleConfirmOrder = () => {
     const orderItems = [];
-    if (selectedItem && !selectedItem.isCustom) {
-        orderItems.push({
-            id: Date.now().toString(),
-            type: selectedItem.subType || selectedItem.name || 'Custom',
-            quantity: selectedItem.quantity,
-            weight: 1, // default
-            rate: selectedItem.price,
-            amount: selectedItem.price * selectedItem.quantity
-        });
+    if (selectedItem) {
+      const isKg = selectedItem.unit === 'kg';
+      orderItems.push({
+        id: Date.now().toString(),
+        type: selectedItem.subType || selectedItem.name || 'Custom',
+        quantity: selectedItem.quantity,
+        weight: isKg ? selectedItem.weight : 1,
+        rate: selectedItem.price,
+        amount: itemTotal
+      });
     }
-    
+
     productsList.forEach(p => {
-        if ((p as any).price && parseFloat((p as any).price) > 0) {
-            const productName = p.name || p.search || 'Item';
-            const categoryPrefix = selectedItem && selectedItem.type ? `${selectedItem.type} - ` : '';
-            orderItems.push({
-                id: p.id.toString(),
-                type: `${categoryPrefix}${productName}`,
-                quantity: p.quantity,
-                weight: 1,
-                rate: parseFloat((p as any).price),
-                amount: parseFloat((p as any).price) * p.quantity
-            });
-        }
+      if ((p as any).price && parseFloat((p as any).price) > 0) {
+        const productName = p.name || p.search || 'Item';
+        const categoryPrefix = selectedItem && selectedItem.type ? `${selectedItem.type} - ` : '';
+        orderItems.push({
+          id: p.id.toString(),
+          type: `${categoryPrefix}${productName}`,
+          quantity: p.quantity,
+          weight: 1,
+          rate: parseFloat((p as any).price),
+          amount: parseFloat((p as any).price) * p.quantity
+        });
+      }
     });
 
-    const finalAmt = orderItems.reduce((acc, item) => acc + item.amount, 0);
-    if (finalAmt <= 0 && orderItems.length === 0) {
-        alert("Please add at least one item with a valid price.");
-        return;
+    const finalAmt = roundedAmount;
+    if (subTotal <= 0 && orderItems.length === 0) {
+      alert("Please add at least one item with a valid price.");
+      return;
     }
 
     const customerId = selectedCustomerForOrder?.id || 'walk-in';
@@ -211,22 +290,24 @@ export default function NewOrderPage() {
     const customerMobile = selectedCustomerForOrder?.mobile || 'N/A';
     const customerEmail = selectedCustomerForOrder?.email || '';
 
+    const totalCalculatedWeight = orderItems.reduce((acc, i) => acc + (i.weight || 1), 0);
+
     addOrder({
       customerId,
       customerName,
       customerMobile,
       customerEmail,
       items: orderItems,
-      totalWeight: orderItems.length, // Placeholder
-      totalAmount: finalAmt,
-      discount: 0,
-      finalAmount: finalAmt,
+      totalWeight: selectedItem?.unit === 'kg' ? selectedItem.weight : totalCalculatedWeight,
+      totalAmount: Math.round(subTotal * 100) / 100,
+      discount: Math.round(discountAmount * 100) / 100,
+      finalAmount: Math.round(finalAmt * 100) / 100,
       paymentStatus: 'Unpaid',
       paymentMethod: 'Cash',
       orderStatus: 'Pending',
       notes: itemNoteText || ''
     });
-    
+
     router.push('/orders');
   };
 
@@ -430,17 +511,17 @@ export default function NewOrderPage() {
           
           <div className={styles.orderSummaryText}>Order Summary</div>
           <div className={styles.summaryIcons}>
-             <div className={styles.summaryIconBox}>
+             <div className={styles.summaryIconBox} title="Orders">
                 <ShoppingBag size={18} /> <span>{selectedItem ? 1 : 0}</span>
              </div>
-             <div className={styles.summaryIconBox}>
-                <Activity size={18} /> <span>0</span>
+             <div className={styles.summaryIconBox} title="Weight">
+                <Activity size={18} /> <span>{selectedItem?.unit === 'kg' ? `${selectedItem.weight.toFixed(1)}kg` : '0kg'}</span>
              </div>
-             <div className={styles.summaryIconBox}>
-                <Shirt size={18} /> <span>{selectedItem ? (productsList.length > 0 ? productsList.reduce((acc, curr) => acc + curr.quantity, 0) * selectedItem.quantity : selectedItem.quantity) : 0}</span> 
+             <div className={styles.summaryIconBox} title="Clothes Count">
+                <Shirt size={18} /> <span>{selectedItem ? (productsList.length > 0 ? productsList.reduce((acc, curr) => acc + curr.quantity, 0) : selectedItem.quantity) : 0}</span> 
              </div>
-             <div className={styles.summaryIconBox}>
-                <Layers size={18} /> <span>0</span>
+             <div className={styles.summaryIconBox} title="Services">
+                <Layers size={18} /> <span>{productsList.length > 0 ? productsList.length : (selectedItem ? 1 : 0)}</span>
              </div>
           </div>
 
@@ -461,17 +542,21 @@ export default function NewOrderPage() {
                      </div>
                      <div className={styles.cartItemInfo}>
                         <div className={styles.cartItemName}>{selectedItem.name}</div>
-                        <div className={styles.cartItemCalc}>{selectedItem.quantity.toFixed(1)} x ₹ {selectedItem.price.toFixed(1)}</div>
+                        <div className={styles.cartItemCalc}>
+                          {selectedItem.unit === 'kg'
+                            ? `${selectedItem.weight.toFixed(1)} kg x ₹ ${selectedItem.price.toFixed(1)} (${selectedItem.quantity} pcs)`
+                            : `${selectedItem.quantity} pcs x ₹ ${selectedItem.price.toFixed(1)}`}
+                        </div>
                      </div>
                   </div>
-                  <div className={styles.cartItemTotal}>₹ {(selectedItem.quantity * selectedItem.price).toFixed(2)}</div>
+                  <div className={styles.cartItemTotal}>₹ {itemTotal.toFixed(2)}</div>
                </div>
              </>
           )}
           
           <div className={styles.discountCard} style={{ marginTop: selectedItem ? 24 : 16 }}>
             <div className={styles.discountHeader} style={{ borderBottom: isDiscountExpanded ? '1px solid #e5e7eb' : 'none' }}>
-               <span className={styles.linkText} onClick={() => setIsDiscountExpanded(!isDiscountExpanded)} style={{cursor: 'pointer'}}>Discount / Promo / Charge</span>
+               <span className={styles.linkText} onClick={() => { setIsDiscountExpanded(!isDiscountExpanded); setActiveTab('Discount'); }} style={{cursor: 'pointer'}}>Discount / Promo / Charge</span>
                <button className={styles.chevronBtn} onClick={() => setIsDiscountExpanded(!isDiscountExpanded)}>
                   {isDiscountExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                </button>
@@ -480,13 +565,27 @@ export default function NewOrderPage() {
                <div className={styles.totals}>
                   <div className={styles.totalRow}>
                      <span>Sub-total:</span>
-                     <span className={styles.priceBlue}>₹ {amountDue}</span>
+                     <span className={styles.priceBlue}>₹ {subTotal.toFixed(2)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                     <div className={styles.totalRow}>
+                        <span style={{color: '#10b981', fontWeight: 600}}>
+                          Discount ({discountType === '%' ? `${discountValue}%` : '₹'}):
+                        </span>
+                        <span style={{color: '#10b981', fontWeight: 700}}>- ₹ {discountAmount.toFixed(2)}</span>
+                     </div>
+                  )}
                   <div className={styles.totalRow}>
-                     <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                       Round Off <input type="checkbox" checked readOnly style={{accentColor: '#d1d5db', width: 16, height: 16}} />
+                     <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none'}}>
+                       Round Off <input type="checkbox" checked={roundOffEnabled} onChange={e => setRoundOffEnabled(e.target.checked)} style={{accentColor: '#00b4d8', width: 16, height: 16, cursor: 'pointer'}} />
+                     </label>
+                     <span className={styles.totalRow} style={{fontWeight: 600, color: '#111827'}}>
+                        {roundOffDiff !== 0 ? (roundOffDiff > 0 ? `+ ₹ ${roundOffDiff.toFixed(2)}` : `- ₹ ${Math.abs(roundOffDiff).toFixed(2)}`) : '₹ 0.0'}
                      </span>
-                     <span className={styles.totalRow} style={{fontWeight: 600, color: '#111827'}}>₹ 0.0</span>
+                  </div>
+                  <div className={styles.totalRow} style={{borderTop: '1px solid #e5e7eb', paddingTop: '8px'}}>
+                     <span style={{fontWeight: 700, color: '#111827'}}>Net Payable:</span>
+                     <span style={{fontWeight: 800, color: '#00b4d8', fontSize: 16}}>₹ {amountDue}</span>
                   </div>
                </div>
             )}
@@ -656,74 +755,297 @@ export default function NewOrderPage() {
                        )}
                     </div>
                     <div className={styles.productDetailInfo}>
-                       <div className={styles.productDetailTitle}>{selectedItem.subType}</div>
-                       <div className={styles.priceInputRow}>
-                          {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? 'Price per Item' : 'Price per kg'} <input type="text" value={selectedItem.price.toFixed(1)} readOnly />
-                       </div>
-                       {selectedItem.minPrice && (
-                          <div style={{color: '#ef4444', fontSize: 12, marginTop: 12}}>Minimum Item Price : ₹ {selectedItem.minPrice.toFixed(1)}</div>
-                       )}
-                    </div>
-                 </div>
-                 
-                 <div className={styles.productDetailControls}>
-                    <div className={styles.weightIcon}>
-                       <div style={{width: 16, height: 16, borderRadius: '50%', background: '#ef4444', margin: 'auto', marginTop: 4}}></div>
-                    </div>
-                    <div className={styles.qtySelector}>
-                       <button className={styles.qtyBtn} onClick={() => setSelectedItem({...selectedItem, quantity: Math.max(1, selectedItem.quantity - 1)})}><Minus size={18} strokeWidth={2.5}/></button>
-                       <input type="text" className={styles.qtyInput} value={selectedItem.quantity} readOnly />
-                       <button className={styles.qtyBtn} onClick={() => setSelectedItem({...selectedItem, quantity: selectedItem.quantity + 1})}><Plus size={18} strokeWidth={2.5}/></button>
-                    </div>
-                    <button className={styles.btnRack}>
-                       <Plus size={18} color="#00b4d8" strokeWidth={3} /> Rack / Conveyor
-                    </button>
-                 </div>
-               </div>
-               )}
-               
-               <div className={styles.actionTabs}>
-                  {selectedItem.isCustom && (
-                    <button className={`${styles.actionTab} ${activeTab === 'Price' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Price')}>Price</button>
-                  )}
-                  <button className={`${styles.actionTab} ${activeTab === 'Discount' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Discount')}>Discount</button>
-                  <button className={`${styles.actionTab} ${activeTab === 'Image' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Image')}>Image</button>
-                  <button className={`${styles.actionTab} ${activeTab === 'Item Note' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Item Note')}>Item Note</button>
-                  {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? (
-                    <button className={`${styles.actionTab} ${activeTab === 'Color' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Color')}>Color</button>
-                  ) : (
-                    <button className={`${styles.actionTab} ${activeTab === 'Product List' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Product List')}>Product List</button>
-                  )}
-               </div>
-               
-               {activeTab === 'Price' && selectedItem.isCustom && (
-                 <div className={styles.discountControls} style={{flexDirection: 'column', gap: '16px'}}>
-                    <div style={{fontSize: 16, fontWeight: 600, color: '#4b5563'}}>Set Specific Product Price</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <div className={styles.discountBtn} style={{background: '#f3f4f6', color: '#111827', cursor: 'default'}}>₹</div>
-                      <input 
-                        type="number" 
-                        className={styles.discountInput} 
-                        style={{width: '200px', fontSize: '20px', fontWeight: 'bold'}}
-                        value={selectedItem.price || ''}
-                        onChange={(e) => setSelectedItem({...selectedItem, price: parseFloat(e.target.value) || 0})}
-                        placeholder="0.00"
-                        autoFocus
-                      />
-                    </div>
-                 </div>
-               )}
+                        <div className={styles.productDetailTitle}>{selectedItem.subType}</div>
+                        <div className={styles.priceInputRow}>
+                           {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? 'Price per Item' : 'Price per kg'} 
+                           <input 
+                             type="number" 
+                             step="any" 
+                             min="0"
+                             value={selectedItem.price || ''} 
+                             onChange={(e) => setSelectedItem({...selectedItem, price: parseFloat(e.target.value) || 0})}
+                             title="Edit price per kg"
+                           />
+                        </div>
+                        {selectedItem.minPrice && (
+                           <div style={{color: '#ef4444', fontSize: 12, marginTop: 12}}>Minimum Item Price : ₹ {selectedItem.minPrice.toFixed(1)}</div>
+                        )}
+                     </div>
+                  </div>
+                  
+                  <div className={styles.productDetailControls}>
+                     {selectedItem.unit === 'kg' ? (
+                       <>
+                         <div className={styles.weightIcon} title="Weighing Scale Indicator">
+                            <div style={{width: 16, height: 16, borderRadius: '50%', background: '#ef4444', margin: 'auto', marginTop: 4}}></div>
+                         </div>
+                         <div className={styles.qtySelector}>
+                            <button className={styles.qtyBtn} onClick={() => updateWeight(-0.5)} title="Decrease 0.5 kg"><Minus size={18} strokeWidth={2.5}/></button>
+                            <div className={styles.weightInputWrapper}>
+                               <input 
+                                 type="number" 
+                                 step="0.1" 
+                                 min="0.1" 
+                                 className={styles.weightInput} 
+                                 value={selectedItem.weight || ''} 
+                                 onChange={(e) => setWeightDirect(e.target.value)} 
+                                 title="Type weight in kg"
+                               />
+                               <span className={styles.weightUnitBadge}>kg</span>
+                            </div>
+                            <button className={styles.qtyBtn} onClick={() => updateWeight(0.5)} title="Increase 0.5 kg"><Plus size={18} strokeWidth={2.5}/></button>
+                         </div>
+                         <div className={styles.clothesSelector} title="Garment pieces count">
+                            <span>👕</span>
+                            <button className={styles.qtyBtnSmall} onClick={() => updateQuantity(-1)} title="Decrease clothes count"><Minus size={13}/></button>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              className={styles.qtyInputSmall} 
+                              value={selectedItem.quantity} 
+                              onChange={(e) => setQuantityDirect(e.target.value)} 
+                              title="Clothes count"
+                            />
+                            <button className={styles.qtyBtnSmall} onClick={() => updateQuantity(1)} title="Increase clothes count"><Plus size={13}/></button>
+                            <span>pcs</span>
+                         </div>
+                         <button className={styles.btnCustomizeKg} onClick={() => setActiveTab('Weight')} title="Open Weight Customizer">
+                            ⚖️ Customize Kg
+                         </button>
+                       </>
+                     ) : (
+                       <>
+                         <div className={styles.qtySelector}>
+                            <button className={styles.qtyBtn} onClick={() => updateQuantity(-1)}><Minus size={18} strokeWidth={2.5}/></button>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              className={styles.qtyInput} 
+                              value={selectedItem.quantity} 
+                              onChange={(e) => setQuantityDirect(e.target.value)} 
+                            />
+                            <button className={styles.qtyBtn} onClick={() => updateQuantity(1)}><Plus size={18} strokeWidth={2.5}/></button>
+                         </div>
+                       </>
+                     )}
+                     <button className={styles.btnRack}>
+                        <Plus size={18} color="#00b4d8" strokeWidth={3} /> Rack / Conveyor
+                     </button>
+                  </div>
+                </div>
+                )}
+                
+                <div className={styles.actionTabs}>
+                   {selectedItem.isCustom && (
+                     <button className={`${styles.actionTab} ${activeTab === 'Price' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Price')}>Price</button>
+                   )}
+                   <button className={`${styles.actionTab} ${activeTab === 'Discount' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Discount')}>Discount</button>
+                   {selectedItem.unit === 'kg' && (
+                     <button className={`${styles.actionTab} ${activeTab === 'Weight' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Weight')}>Customize Kg</button>
+                   )}
+                   <button className={`${styles.actionTab} ${activeTab === 'Image' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Image')}>Image</button>
+                   <button className={`${styles.actionTab} ${activeTab === 'Item Note' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Item Note')}>Item Note</button>
+                   {selectedItem.type === 'FOOTWARE' || selectedItem.type === 'FOOTWEAR' ? (
+                     <button className={`${styles.actionTab} ${activeTab === 'Color' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Color')}>Color</button>
+                   ) : (
+                     <button className={`${styles.actionTab} ${activeTab === 'Product List' ? styles.actionTabActive : styles.actionTabInactive}`} onClick={() => setActiveTab('Product List')}>Product List</button>
+                   )}
+                </div>
+                
+                {activeTab === 'Price' && selectedItem.isCustom && (
+                  <div className={styles.discountControls} style={{flexDirection: 'column', gap: '16px'}}>
+                     <div style={{fontSize: 16, fontWeight: 600, color: '#4b5563'}}>Set Specific Product Price</div>
+                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                       <div className={styles.discountBtn} style={{background: '#f3f4f6', color: '#111827', cursor: 'default'}}>₹</div>
+                       <input 
+                         type="number" 
+                         className={styles.discountInput} 
+                         style={{width: '200px', fontSize: '20px', fontWeight: 'bold'}}
+                         value={selectedItem.price || ''} 
+                         onChange={(e) => setSelectedItem({...selectedItem, price: parseFloat(e.target.value) || 0})}
+                         placeholder="0.00"
+                         autoFocus
+                       />
+                     </div>
+                  </div>
+                )}
 
-               {activeTab === 'Discount' && (
-                 <div className={styles.discountControls}>
-                    <button className={styles.discountBtn}>₹</button>
-                    <input type="text" className={styles.discountInput} />
-                    <button className={styles.discountBtn}>%</button>
-                 </div>
-               )}
-               
-               {activeTab === 'Image' && (
-                 <div className={styles.imageTabContent}>
+                {activeTab === 'Weight' && selectedItem.unit === 'kg' && (
+                  <div className={styles.weightTabContent}>
+                     <div className={styles.weightTabHeader}>
+                        <div className={styles.weightTabTitle}>
+                           <span>⚖️ Customize Kilogram (Weight)</span>
+                        </div>
+                        <div className={styles.weightRateBadge}>
+                           Rate: ₹{selectedItem.price.toFixed(1)} / kg
+                        </div>
+                     </div>
+
+                     <div style={{textAlign: 'center', color: '#4b5563', fontSize: 14}}>
+                        Change the total weight in kilograms for <strong>{selectedItem.name}</strong>
+                     </div>
+
+                     <div className={styles.weightMainControls}>
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(-1.0)} title="-1.0 kg">-1.0 kg</button>
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(-0.5)} title="-0.5 kg">-0.5 kg</button>
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(-0.1)} title="-0.1 kg">-0.1 kg</button>
+                        
+                        <div className={styles.weightInputWrapper}>
+                           <input 
+                             type="number" 
+                             step="0.1" 
+                             min="0.1" 
+                             className={styles.bigWeightInput}
+                             value={selectedItem.weight || ''}
+                             onChange={(e) => setWeightDirect(e.target.value)}
+                           />
+                           <span style={{fontSize: 15, fontWeight: 800, color: '#00b4d8', marginLeft: 8}}>kg</span>
+                        </div>
+
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(0.1)} title="+0.1 kg">+0.1 kg</button>
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(0.5)} title="+0.5 kg">+0.5 kg</button>
+                        <button className={styles.weightStepBtn} onClick={() => updateWeight(1.0)} title="+1.0 kg">+1.0 kg</button>
+                     </div>
+
+                     <div>
+                        <div style={{fontSize: 12, fontWeight: 600, color: '#6b7280', textAlign: 'center', marginBottom: 8}}>
+                           Quick Weight Presets:
+                        </div>
+                        <div className={styles.presetGrid}>
+                           {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.5, 10.0].map(w => {
+                              const isActive = selectedItem.weight === w;
+                              return (
+                                 <button 
+                                   key={w} 
+                                   className={`${styles.presetChip} ${isActive ? styles.presetChipActive : ''}`}
+                                   onClick={() => setSelectedItem({ ...selectedItem, weight: w })}
+                                 >
+                                   {w.toFixed(1)} kg
+                                 </button>
+                              );
+                           })}
+                        </div>
+                     </div>
+
+                     <div className={styles.calcBreakdownCard}>
+                        <div>
+                           <div style={{fontSize: 12, color: '#64748b', fontWeight: 600}}>Calculation Breakdown</div>
+                           <div className={styles.calcBreakdownFormula}>
+                              {selectedItem.weight.toFixed(2)} kg × ₹{selectedItem.price.toFixed(1)}/kg
+                           </div>
+                        </div>
+                        <div style={{textAlign: 'right'}}>
+                           <div style={{fontSize: 12, color: '#64748b', fontWeight: 600}}>Item Amount</div>
+                           <div className={styles.calcBreakdownTotal}>
+                              ₹ {(selectedItem.weight * selectedItem.price).toFixed(2)}
+                           </div>
+                        </div>
+                     </div>
+
+                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f9fafb', borderRadius: 8, fontSize: 13}}>
+                        <span style={{color: '#4b5563'}}>Want to adjust rate per kg?</span>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                           <span style={{fontWeight: 600}}>₹</span>
+                           <input 
+                             type="number" 
+                             style={{width: 80, padding: '4px 8px', borderRadius: 4, border: '1px solid #d1d5db', textAlign: 'center', fontWeight: 600}}
+                             value={selectedItem.price || ''}
+                             onChange={(e) => setSelectedItem({...selectedItem, price: parseFloat(e.target.value) || 0})}
+                           />
+                           <span style={{color: '#6b7280'}}>/ kg</span>
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'Discount' && (
+                  <div className={styles.discountCardContent}>
+                     <div style={{fontSize: 16, fontWeight: 700, color: '#111827'}}>Apply Order Discount</div>
+                     <div className={styles.discountControls} style={{marginTop: 0}}>
+                        <button 
+                          className={`${styles.discountBtn} ${discountType === 'flat' ? styles.discountBtnActive : styles.discountBtnInactive}`}
+                          onClick={() => setDiscountType('flat')}
+                          title="Discount in Rupees (₹)"
+                        >
+                          ₹
+                        </button>
+                        <input 
+                          type="number" 
+                          step="any" 
+                          min="0"
+                          className={styles.discountInput} 
+                          placeholder="0"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                        />
+                        <button 
+                          className={`${styles.discountBtn} ${discountType === 'percent' ? styles.discountBtnActive : styles.discountBtnInactive}`}
+                          onClick={() => setDiscountType('percent')}
+                          title="Discount in Percentage (%)"
+                        >
+                          %
+                        </button>
+                     </div>
+
+                     {/* Quick discount presets */}
+                     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%'}}>
+                        <div style={{fontSize: 12, color: '#6b7280', fontWeight: 600}}>Quick Discount Presets:</div>
+                        <div className={styles.presetGrid}>
+                           {['5%', '10%', '15%', '20%', '25%'].map(pct => {
+                              const val = pct.replace('%', '');
+                              const isActive = discountType === 'percent' && discountValue === val;
+                              return (
+                                <button 
+                                  key={pct} 
+                                  className={`${styles.presetChip} ${isActive ? styles.presetChipActive : ''}`}
+                                  onClick={() => { setDiscountType('percent'); setDiscountValue(val); }}
+                                >
+                                  {pct}
+                                </button>
+                              );
+                           })}
+                           {['20', '50', '100'].map(rs => {
+                              const isActive = discountType === 'flat' && discountValue === rs;
+                              return (
+                                <button 
+                                  key={rs} 
+                                  className={`${styles.presetChip} ${isActive ? styles.presetChipActive : ''}`}
+                                  onClick={() => { setDiscountType('flat'); setDiscountValue(rs); }}
+                                >
+                                  ₹{rs}
+                                </button>
+                              );
+                           })}
+                           {discountValue && (
+                              <button 
+                                className={styles.presetChip} 
+                                style={{borderColor: '#ef4444', color: '#ef4444'}}
+                                onClick={() => setDiscountValue('')}
+                              >
+                                ❌ Clear
+                              </button>
+                           )}
+                        </div>
+                     </div>
+
+                     {/* Live Feedback Summary */}
+                     {discountAmount > 0 ? (
+                        <div className={styles.discountAppliedBadge}>
+                           🎉 <strong>₹{discountAmount.toFixed(2)}</strong> discount applied! 
+                           <span style={{marginLeft: 8, color: '#047857'}}>
+                             (Sub-total: ₹{subTotal.toFixed(2)} → Net Payable: ₹{(subTotal - discountAmount).toFixed(2)})
+                           </span>
+                        </div>
+                     ) : (
+                        <div style={{fontSize: 13, color: '#9ca3af', textAlign: 'center'}}>
+                           Click <strong>₹</strong> for flat rupee discount or <strong>%</strong> for percentage discount, then enter the value above.
+                        </div>
+                     )}
+                  </div>
+                )}
+                
+                {activeTab === 'Image' && (
+                  <div className={styles.imageTabContent}>
                     <div className={styles.imageTabHeader}>
                        <span>0/4 images selected</span>
                        <span>Max size: 3 MB</span>

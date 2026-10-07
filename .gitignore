@@ -25,3 +25,6 @@ build/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local notes / credentials
+Laundry.to.txt

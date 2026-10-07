@@ -1085,3 +1085,245 @@
   color: #111827;
   cursor: pointer;
 }
+
+/* Weight Controls & Customize Kg */
+.weightInputWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.weightInput {
+  border: 1px solid #00b4d8;
+  border-radius: 4px;
+  width: 72px;
+  height: 40px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #111827;
+  padding-right: 22px;
+  outline: none;
+}
+.weightInput:focus {
+  border-color: #0077b6;
+  box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.2);
+}
+.weightUnitBadge {
+  position: absolute;
+  right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #00b4d8;
+  pointer-events: none;
+}
+
+.clothesSelector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #4b5563;
+  height: 40px;
+}
+.qtyBtnSmall {
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  width: 24px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qtyBtnSmall:hover {
+  background: #f3f4f6;
+  border-color: #00b4d8;
+  color: #00b4d8;
+}
+.qtyInputSmall {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  width: 36px;
+  height: 26px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  outline: none;
+}
+
+.btnCustomizeKg {
+  border: 1.5px solid #00b4d8;
+  background: #f0fdfa;
+  color: #0096c7;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btnCustomizeKg:hover {
+  background: #00b4d8;
+  color: white;
+}
+
+/* Weight Tab Content */
+.weightTabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 28px;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.weightTabHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 12px;
+}
+.weightTabTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.weightRateBadge {
+  font-size: 13px;
+  color: #00b4d8;
+  font-weight: 600;
+  background: #e0f2fe;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.weightMainControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.weightStepBtn {
+  border: 1px solid #00b4d8;
+  background: white;
+  color: #00b4d8;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.weightStepBtn:hover {
+  background: #00b4d8;
+  color: white;
+}
+.bigWeightInput {
+  width: 120px;
+  height: 48px;
+  border: 2px solid #00b4d8;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  color: #111827;
+  outline: none;
+}
+.presetGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.presetChip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.presetChip:hover {
+  border-color: #00b4d8;
+  color: #00b4d8;
+  background: #f0fdfa;
+}
+.presetChipActive {
+  background: #00b4d8 !important;
+  color: white !important;
+  border-color: #00b4d8 !important;
+}
+.calcBreakdownCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.calcBreakdownFormula {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.calcBreakdownTotal {
+  font-size: 18px;
+  font-weight: 800;
+  color: #00b4d8;
+}
+
+/* Discount Tab Card */
+.discountCardContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-top: 28px;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.discountAppliedBadge {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+}
+
