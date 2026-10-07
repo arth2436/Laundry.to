@@ -84,6 +84,46 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </div>
+
+        <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'center' }}>
+          <a
+            href="https://tejaskpaisoftware.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              textDecoration: 'none',
+              color: '#0891b2',
+              fontSize: 11,
+              letterSpacing: '0.14em',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '0.75';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.opacity = '1';
+            }}
+          >
+            <span>POWERED BY</span>
+            <img
+              src="/tejaskp-logo.jpeg"
+              alt="TEJASKP AI SOFTWARE"
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                objectFit: 'cover',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+              }}
+            />
+            <span>TEJASKP AI SOFTWARE</span>
+          </a>
+        </div>
       </form>
     </div>
   );
