@@ -570,7 +570,7 @@ export default function NewOrderPage() {
                   {discountAmount > 0 && (
                      <div className={styles.totalRow}>
                         <span style={{color: '#10b981', fontWeight: 600}}>
-                          Discount ({discountType === '%' ? `${discountValue}%` : '₹'}):
+                          Discount ({discountType === 'percent' ? `${discountValue}%` : '₹'}):
                         </span>
                         <span style={{color: '#10b981', fontWeight: 700}}>- ₹ {discountAmount.toFixed(2)}</span>
                      </div>
