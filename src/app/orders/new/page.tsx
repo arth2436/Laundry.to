@@ -125,14 +125,11 @@ export default function NewOrderPage() {
   };
 
   const handleUpdateProductQty = (id: number, delta: number) => {
-    const newList = productsList.map(p => p.id === id ? { ...p, quantity: Math.max(0, p.quantity + delta) } : p);
+    const newList = productsList.map(p => p.id === id ? { ...p, quantity: Math.max(1, p.quantity + delta) } : p);
     setProductsList(newList);
     if (selectedItem?.isCustom) {
-      const hasAnyPrice = newList.some(p => (p as any).price);
-      if (hasAnyPrice) {
-        const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
-        setSelectedItem({...selectedItem, price: total});
-      }
+      const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+      setSelectedItem(prev => prev ? { ...prev, price: total } : null);
     }
   };
 
@@ -140,11 +137,8 @@ export default function NewOrderPage() {
     const newList = productsList.filter(p => p.id !== id);
     setProductsList(newList);
     if (selectedItem?.isCustom) {
-      const hasAnyPrice = newList.some(p => (p as any).price);
-      if (hasAnyPrice) {
-        const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
-        setSelectedItem({...selectedItem, price: total});
-      }
+      const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+      setSelectedItem(prev => prev ? { ...prev, price: total } : null);
     }
   };
 
@@ -192,18 +186,20 @@ export default function NewOrderPage() {
   };
 
   const handleCustomItemClick = (category: string) => {
+    setProductsList([]);
     setSelectedItem({
       id: Date.now(),
       name: "Custom Item",
       price: 0,
       weight: 1.0,
       quantity: 1,
-      unit: category === 'FOOTWEAR' ? 'pc' : 'kg',
+      unit: (category === 'WASH AND FOLD' || category === 'WASH AND STEAM') ? 'kg' : 'pc',
       type: category,
       subType: "Custom Item",
-      isCustom: true
+      isCustom: true,
+      imageText: category === 'DRY CLEAN' ? "DRY\nCLEAN" : "CUSTOM\nITEM"
     });
-    setActiveTab('Price');
+    setActiveTab(category === 'DRY CLEAN' ? 'Product List' : 'Price');
   };
 
   const handleFootwareClick = (name: string, price: number) => {
@@ -222,10 +218,13 @@ export default function NewOrderPage() {
   };
 
   // Price & Total Calculations
+  const hasCustomProducts = !!(selectedItem?.isCustom && productsList.some(p => (p as any).price && parseFloat((p as any).price) > 0));
+  const productsTotal = productsList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+
   let itemTotal = 0;
   if (selectedItem) {
     if (selectedItem.isCustom) {
-      itemTotal = selectedItem.price;
+      itemTotal = hasCustomProducts ? productsTotal : selectedItem.price;
     } else if (selectedItem.unit === 'kg') {
       itemTotal = selectedItem.price * selectedItem.weight;
     } else {
@@ -233,8 +232,9 @@ export default function NewOrderPage() {
     }
   }
 
-  const productsTotal = productsList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
-  const subTotal = itemTotal + productsTotal;
+  const subTotal = selectedItem?.isCustom
+    ? (hasCustomProducts ? productsTotal : itemTotal)
+    : (itemTotal + productsTotal);
 
   // Discount Calculation
   const numDiscount = Math.max(0, parseFloat(discountValue) || 0);
@@ -254,14 +254,16 @@ export default function NewOrderPage() {
     const orderItems = [];
     if (selectedItem) {
       const isKg = selectedItem.unit === 'kg';
-      orderItems.push({
-        id: Date.now().toString(),
-        type: selectedItem.subType || selectedItem.name || 'Custom',
-        quantity: selectedItem.quantity,
-        weight: isKg ? selectedItem.weight : 1,
-        rate: selectedItem.price,
-        amount: itemTotal
-      });
+      if (!selectedItem.isCustom || !hasCustomProducts) {
+        orderItems.push({
+          id: Date.now().toString(),
+          type: selectedItem.subType || selectedItem.name || 'Custom',
+          quantity: selectedItem.quantity,
+          weight: isKg ? selectedItem.weight : 1,
+          rate: selectedItem.price,
+          amount: itemTotal
+        });
+      }
     }
 
     productsList.forEach(p => {
@@ -541,11 +543,17 @@ export default function NewOrderPage() {
                         )}
                      </div>
                      <div className={styles.cartItemInfo}>
-                        <div className={styles.cartItemName}>{selectedItem.name}</div>
+                        <div className={styles.cartItemName}>
+                           {selectedItem.isCustom && hasCustomProducts
+                             ? (productsList.filter(p => p.name || p.search).length === 1
+                                 ? (productsList.find(p => p.name || p.search)?.name || productsList.find(p => p.name || p.search)?.search || 'Custom Item')
+                                 : `${productsList.length} Items`)
+                             : selectedItem.name}
+                        </div>
                         <div className={styles.cartItemCalc}>
                           {selectedItem.unit === 'kg'
-                            ? `${selectedItem.weight.toFixed(1)} kg x ₹ ${selectedItem.price.toFixed(1)} (${selectedItem.quantity} pcs)`
-                            : `${selectedItem.quantity} pcs x ₹ ${selectedItem.price.toFixed(1)}`}
+                            ? `${selectedItem.weight.toFixed(1)} kg x ₹ ${selectedItem.price.toFixed(1)} (${productsList.length > 0 ? productsList.reduce((acc, curr) => acc + curr.quantity, 0) : selectedItem.quantity} pcs)`
+                            : `${selectedItem.isCustom && hasCustomProducts ? productsList.reduce((acc, curr) => acc + curr.quantity, 0) : selectedItem.quantity} pcs x ₹ ${itemTotal.toFixed(1)}`}
                         </div>
                      </div>
                   </div>
@@ -1131,11 +1139,8 @@ export default function NewOrderPage() {
                                setProductsList(newList as any);
                                
                                if (selectedItem?.isCustom) {
-                                 const hasAnyPrice = newList.some(p => (p as any).price);
-                                 if (hasAnyPrice) {
-                                   const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
-                                   setSelectedItem({...selectedItem, price: total});
-                                 }
+                                 const total = newList.reduce((acc, curr) => acc + (parseFloat((curr as any).price || '0') * curr.quantity), 0);
+                                 setSelectedItem(prev => prev ? { ...prev, price: total } : null);
                                }
                              }}
                            />
@@ -1175,7 +1180,7 @@ export default function NewOrderPage() {
                </>
             ) : (
                <>
-                 <button className={styles.btnCancel} onClick={() => setSelectedItem(null)}>Back</button>
+                 <button className={styles.btnCancel} onClick={() => { setSelectedItem(null); setProductsList([]); setDiscountValue(''); }}>Back</button>
                  <button className={styles.btnCancel} style={{background: '#00ced1', color: '#111827'}} onClick={handleConfirmOrder}>Add to Order</button>
                </>
             )}
